@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Learning Plan &amp; Realisasi — ICMS</title>
+<title>Rekap Program — ICMS</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -55,8 +55,8 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-ser
     <hr>
     <nav>
       <a href="index.html">📋 Rencana Kelas</a>
-      <a class="active" href="learning_plan.html">🧭 Learning Plan Realisasi</a>
-      <a href="rekap_program.html">🗂️ Rekap Program</a>
+      <a href="learning_plan.html">🧭 Learning Plan Realisasi</a>
+      <a class="active" href="rekap_program.html">🗂️ Rekap Program</a>
       <a href="#" onclick="return false">👥 Peserta</a>
       <a href="#" onclick="return false">🎓 Sertifikat</a>
     </nav>
@@ -68,15 +68,14 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-ser
 
   <main class="main">
     <section class="hero">
-      <h1>Learning Plan &amp; Realisasi Anggaran</h1>
-      <p>Tracking program, periode pelaksanaan, realisasi bulanan, dan akrual biaya per program.</p>
+      <h1>Rekap Program</h1>
+      <p>Rekap gabungan program: UIC, subprogram, pengelola, periode, metode, jumlah hari, learner, dan biaya pelatihan.</p>
 
       <div class="filter-title">🔎 Filter Data</div>
       <div class="filters">
         <select id="filterUic"><option value="">Semua UIC</option></select>
-        <select id="filterStatusRealisasi"><option value="">Semua Status Progress</option></select>
-        <select id="filterStatusProgram"><option value="">Semua Status Pelaksanaan</option></select>
-        <input id="searchInput" placeholder="Nama program / learning goals...">
+        <select id="filterMetode"><option value="">Semua Metode</option></select>
+        <input id="searchInput" placeholder="Program / subprogram / pengelola...">
         <button class="btn primary" onclick="applyFilters()">🔎 Terapkan</button>
         <button class="btn gray" onclick="resetFilters()">↺ Reset</button>
       </div>
@@ -94,12 +93,12 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-ser
 
     <section class="summary">
       <div class="card"><div class="label">Total Program</div><div class="value" id="sumProgram">0</div></div>
-      <div class="card"><div class="label">Total Estimasi Biaya</div><div class="value" id="sumEstimasi">Rp 0</div></div>
-      <div class="card"><div class="label">Total Revisi Estimasi</div><div class="value" id="sumRevisi">Rp 0</div></div>
-      <div class="card"><div class="label">Total Realisasi (Bulan 1-12)</div><div class="value" id="sumRealisasi">Rp 0</div></div>
+      <div class="card"><div class="label">Total Jumlah Hari</div><div class="value" id="sumHari">0</div></div>
+      <div class="card"><div class="label">Total Learner</div><div class="value" id="sumLearner">0</div></div>
+      <div class="card"><div class="label">Total Biaya Pelatihan</div><div class="value" id="sumBiaya">Rp 0</div></div>
     </section>
 
-    <section class="section-title">📋 Data Learning Plan &amp; Realisasi</section>
+    <section class="section-title">📋 Data Rekap Program</section>
     <div class="table-wrap">
       <table id="dataTable">
         <thead><tr id="theadRow"><th>No</th></tr></thead>
@@ -138,7 +137,7 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-ser
 // ============================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbyJoZ2eU7rcPjoiQDERgrwAu2_wSL-AQ9wP46-7neFspaXYIVHDyD4F1p6q4XCBWVMx/exec";
 const API_KEY = "2026-BNU-KARTUKONTROL";
-const SHEET_NAME = "learning_plan_realisasi";
+const SHEET_NAME = "rekap_program";
 // ============================================================
 
 const PAGE_SIZE = 50;
@@ -149,53 +148,18 @@ let currentPage = 1;
 // Definisi field: key, label tampilan, tipe (text/textarea/number/date), grup form
 const FIELD_DEFS = [
   {key:"uic", label:"UIC", type:"text", group:"Informasi Program"},
-  {key:"nama_program", label:"Nama Program", type:"text", group:"Informasi Program", full:true},
-  {key:"learning_goals", label:"Learning Goals", type:"textarea", group:"Informasi Program", full:true},
-  {key:"metode_pembelajaran", label:"Konfirmasi Metode Pembelajaran", type:"text", group:"Informasi Program"},
+  {key:"program", label:"Program", type:"text", group:"Informasi Program"},
+  {key:"subprogram", label:"Subprogram", type:"text", group:"Informasi Program"},
+  {key:"pengelola", label:"Pengelola", type:"text", group:"Informasi Program"},
+  {key:"metode", label:"Metode", type:"text", group:"Informasi Program"},
 
-  {key:"awal_periode", label:"Awal Periode Pelaksanaan", type:"date", group:"Periode Pelaksanaan"},
-  {key:"akhir_periode", label:"Akhir Periode Pelaksanaan", type:"date", group:"Periode Pelaksanaan"},
-  {key:"rev_awal_periode", label:"Rev. Awal Periode Pelaksanaan", type:"date", group:"Periode Pelaksanaan"},
-  {key:"rev_akhir_periode", label:"Rev. Akhir Periode Pelaksanaan", type:"date", group:"Periode Pelaksanaan"},
-  {key:"bulan_mulai", label:"Bulan Mulai", type:"text", group:"Periode Pelaksanaan"},
-  {key:"bulan_akhir", label:"Bulan Akhir", type:"text", group:"Periode Pelaksanaan"},
-  {key:"durasi_bulan", label:"Durasi Bulan", type:"number", group:"Periode Pelaksanaan"},
-
-  {key:"status_progress_realisasi", label:"Status Progress Realisasi", type:"text", group:"Progress & Biaya"},
-  {key:"nilai_per_bulan", label:"Nilai per Bulan", type:"number", group:"Progress & Biaya"},
-  {key:"total_estimasi_biaya", label:"Total Estimasi Biaya", type:"number", group:"Progress & Biaya"},
-  {key:"revisi_total_estimasi_biaya", label:"Revisi Total Estimasi Biaya", type:"number", group:"Progress & Biaya"},
-  {key:"status_pelaksanaan_program", label:"Status Pelaksanaan Program", type:"text", group:"Progress & Biaya"},
-  {key:"keterangan_perubahan", label:"Keterangan Perubahan dan Strategi Close the Gap", type:"textarea", group:"Progress & Biaya", full:true},
-
-  {key:"bulan_1", label:"Bulan 1", type:"number", group:"Realisasi Bulanan"},
-  {key:"bulan_2", label:"Bulan 2", type:"number", group:"Realisasi Bulanan"},
-  {key:"bulan_3", label:"Bulan 3", type:"number", group:"Realisasi Bulanan"},
-  {key:"bulan_4", label:"Bulan 4", type:"number", group:"Realisasi Bulanan"},
-  {key:"bulan_5", label:"Bulan 5", type:"number", group:"Realisasi Bulanan"},
-  {key:"bulan_6", label:"Bulan 6", type:"number", group:"Realisasi Bulanan"},
-  {key:"bulan_7", label:"Bulan 7", type:"number", group:"Realisasi Bulanan"},
-  {key:"bulan_8", label:"Bulan 8", type:"number", group:"Realisasi Bulanan"},
-  {key:"bulan_9", label:"Bulan 9", type:"number", group:"Realisasi Bulanan"},
-  {key:"bulan_10", label:"Bulan 10", type:"number", group:"Realisasi Bulanan"},
-  {key:"bulan_11", label:"Bulan 11", type:"number", group:"Realisasi Bulanan"},
-  {key:"bulan_12", label:"Bulan 12", type:"number", group:"Realisasi Bulanan"},
-
-  {key:"cek", label:"CEK", type:"text", group:"Cek & Akrual"},
-  {key:"akr_jan", label:"Jan (10% x Accr Jan)", type:"number", group:"Cek & Akrual"},
-  {key:"akr_feb", label:"Feb (20% x Accr Jan)", type:"number", group:"Cek & Akrual"},
-  {key:"akr_mar", label:"Mar (10% x Accr Jan + Accr Feb)", type:"number", group:"Cek & Akrual"},
-  {key:"akr_apr", label:"Apr (Accr Mar)", type:"number", group:"Cek & Akrual"},
-  {key:"akr_mei", label:"Mei (Accr Apr)", type:"number", group:"Cek & Akrual"},
-  {key:"akr_jun", label:"Jun (Accr Mei)", type:"number", group:"Cek & Akrual"},
-  {key:"akr_jul", label:"Jul (Accr Jun)", type:"number", group:"Cek & Akrual"},
-  {key:"akr_agu", label:"Agu (Accr Jul)", type:"number", group:"Cek & Akrual"},
-  {key:"akr_sep", label:"Sep (Accr Agu)", type:"number", group:"Cek & Akrual"},
-  {key:"akr_okt", label:"Okt (Accr Sep)", type:"number", group:"Cek & Akrual"},
-  {key:"akr_nov", label:"Nov (Accr Okt)", type:"number", group:"Cek & Akrual"},
-  {key:"akr_des", label:"Des (Accr Nov + Accr Des)", type:"number", group:"Cek & Akrual"}
+  {key:"tgl_awal", label:"Tgl Awal", type:"date", group:"Periode & Pelaksanaan"},
+  {key:"tgl_akhir", label:"Tgl Akhir", type:"date", group:"Periode & Pelaksanaan"},
+  {key:"jumlah_hari", label:"Jumlah Hari", type:"number", group:"Periode & Pelaksanaan"},
+  {key:"learner", label:"Learner", type:"number", group:"Periode & Pelaksanaan"},
+  {key:"biaya_pelatihan", label:"Biaya Pelatihan", type:"number", group:"Periode & Pelaksanaan"}
 ];
-const GROUPS = ["Informasi Program","Periode Pelaksanaan","Progress & Biaya","Realisasi Bulanan","Cek & Akrual"];
+const GROUPS = ["Informasi Program","Periode & Pelaksanaan"];
 const DATE_FIELDS = FIELD_DEFS.filter(f=>f.type==="date").map(f=>f.key);
 const NUMBER_FIELDS = FIELD_DEFS.filter(f=>f.type==="number").map(f=>f.key);
 
@@ -205,10 +169,9 @@ function buildForm(){
   const wrap=document.getElementById("formSections");
   wrap.innerHTML = GROUPS.map(g=>{
     const fields=FIELD_DEFS.filter(f=>f.group===g);
-    const isMonthGroup = g==="Realisasi Bulanan" || g==="Cek & Akrual";
     return `<div class="form-section">
       <div class="form-section-title">${g}</div>
-      <div class="form-grid${isMonthGroup?" months":""}">
+      <div class="form-grid">
         ${fields.map(f=>`<label class="${f.full?"full":""}">${f.label}
           ${f.type==="textarea"
             ? `<textarea id="f_${f.key}"></textarea>`
@@ -263,8 +226,7 @@ async function loadData(){
 
 function buildFilters(){
   buildSelect("filterUic", unique("uic"), "Semua UIC");
-  buildSelect("filterStatusRealisasi", unique("status_progress_realisasi"), "Semua Status Progress");
-  buildSelect("filterStatusProgram", unique("status_pelaksanaan_program"), "Semua Status Pelaksanaan");
+  buildSelect("filterMetode", unique("metode"), "Semua Metode");
 }
 function unique(field){
   return [...new Set(allData.map(x=>String(x[field]??"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"id"));
@@ -276,16 +238,14 @@ function buildSelect(id, values, first){
 
 function applyFilters(){
   const uic=document.getElementById("filterUic").value;
-  const statusRealisasi=document.getElementById("filterStatusRealisasi").value;
-  const statusProgram=document.getElementById("filterStatusProgram").value;
+  const metode=document.getElementById("filterMetode").value;
   const q=document.getElementById("searchInput").value.trim().toLowerCase();
 
   filteredData=allData.filter(r=>{
     if(uic && r.uic!==uic)return false;
-    if(statusRealisasi && r.status_progress_realisasi!==statusRealisasi)return false;
-    if(statusProgram && r.status_pelaksanaan_program!==statusProgram)return false;
+    if(metode && r.metode!==metode)return false;
     if(q){
-      const hay=["nama_program","learning_goals","uic"].map(k=>String(r[k]??"").toLowerCase()).join(" ");
+      const hay=["program","subprogram","pengelola","uic"].map(k=>String(r[k]??"").toLowerCase()).join(" ");
       if(!hay.includes(q))return false;
     }
     return true;
@@ -295,7 +255,7 @@ function applyFilters(){
 }
 
 function resetFilters(){
-  ["filterUic","filterStatusRealisasi","filterStatusProgram"].forEach(id=>document.getElementById(id).value="");
+  ["filterUic","filterMetode"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("searchInput").value="";
   applyFilters();
 }
@@ -304,14 +264,13 @@ function render(){ renderSummary(); renderTable(); }
 
 function renderSummary(){
   const program=filteredData.length;
-  const estimasi=sum("total_estimasi_biaya");
-  const revisi=sum("revisi_total_estimasi_biaya");
-  let realisasi=0;
-  for(let i=1;i<=12;i++) realisasi+=sum("bulan_"+i);
+  const hari=sum("jumlah_hari");
+  const learner=sum("learner");
+  const biaya=sum("biaya_pelatihan");
   document.getElementById("sumProgram").textContent=program.toLocaleString("id-ID");
-  document.getElementById("sumEstimasi").textContent=money(estimasi);
-  document.getElementById("sumRevisi").textContent=money(revisi);
-  document.getElementById("sumRealisasi").textContent=money(realisasi);
+  document.getElementById("sumHari").textContent=hari.toLocaleString("id-ID");
+  document.getElementById("sumLearner").textContent=learner.toLocaleString("id-ID");
+  document.getElementById("sumBiaya").textContent=money(biaya);
 }
 function sum(field){return filteredData.reduce((a,r)=>a+(Number(r[field])||0),0)}
 
@@ -324,9 +283,9 @@ function renderTable(){
     const cells = FIELD_DEFS.map(f=>{
       let v = r[f.key];
       if(f.type==="date") v = formatDate(v);
-      else if(f.type==="number") v = num(v, f.key.startsWith("total")||f.key.startsWith("revisi")||f.key.startsWith("bulan_")||f.key.startsWith("akr_")||f.key==="nilai_per_bulan" ? 0 : 0);
+      else if(f.type==="number") v = f.key==="biaya_pelatihan" ? money(v) : num(v,0);
       else v = escapeHtml(v);
-      const cls = (f.type==="text"&&(f.key==="nama_program"||f.key==="learning_goals"||f.key==="keterangan_perubahan"))?"left":"";
+      const cls = (f.type==="text"&&(f.key==="program"||f.key==="subprogram"))?"left":"";
       return `<td class="${cls}">${v}</td>`;
     }).join("");
     return `<tr>
@@ -386,7 +345,7 @@ async function deleteOne(id){
   try{await apiPost({action:"delete",id});await loadData()}catch(err){showAlert("Gagal menghapus: "+err.message,"error")}
 }
 async function deleteAllData(){
-  if(!confirm("Hapus SEMUA data Learning Plan & Realisasi?"))return;
+  if(!confirm("Hapus SEMUA data Rekap Program?"))return;
   const c=prompt("Ketik HAPUS untuk konfirmasi:");
   if(c!=="HAPUS")return;
   try{await apiPost({action:"deleteAll"});await loadData()}catch(err){showAlert("Gagal menghapus semua: "+err.message,"error")}
@@ -415,15 +374,15 @@ function exportExcel(){
   });
   const ws=XLSX.utils.json_to_sheet(rows);
   const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,"learning_plan_realisasi");
-  XLSX.writeFile(wb,"Export_Learning_Plan_Realisasi.xlsx");
+  XLSX.utils.book_append_sheet(wb,ws,"rekap_program");
+  XLSX.writeFile(wb,"Export_Rekap_Program.xlsx");
 }
 function downloadTemplate(){
   const sample={};
   FIELD_DEFS.forEach(f=>{ sample[f.label] = f.type==="number" ? 0 : (f.type==="date" ? "2026-01-01 00:00:00" : ""); });
   const ws=XLSX.utils.json_to_sheet([sample]);
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Template");
-  XLSX.writeFile(wb,"Template_Learning_Plan_Realisasi.xlsx");
+  XLSX.writeFile(wb,"Template_Rekap_Program.xlsx");
 }
 
 function showAlert(msg,type){

@@ -123,6 +123,28 @@ const SCHEMAS = {
       akr_nov:["Nov (Accr Okt)"],
       akr_des:["Des (Accr Nov + Accr Des)"]
     }
+  },
+
+  rekap_program: {
+    headers: [
+      "id","uic","program","subprogram","pengelola","tgl_awal","tgl_akhir",
+      "metode","jumlah_hari","learner","biaya_pelatihan","created_at","updated_at"
+    ],
+    dateFields: ["tgl_awal","tgl_akhir"],
+    numberFields: ["jumlah_hari","learner","biaya_pelatihan"],
+    uniqueField: "",
+    importAliases: {
+      uic:["UIC"],
+      program:["Program"],
+      subprogram:["Subprogram"],
+      pengelola:["Pengelola"],
+      tgl_awal:["Tgl Awal"],
+      tgl_akhir:["Tgl Akhir"],
+      metode:["Metode"],
+      jumlah_hari:["Jumlah Hari"],
+      learner:["Learner"],
+      biaya_pelatihan:["Biaya Pelatihan"]
+    }
   }
 
 };
