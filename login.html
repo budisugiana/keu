@@ -3,15 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login — Kartu Kontrol</title>
+<title>Login — ICMS</title>
 <style>
 :root{
   --dark:#0b3c55;--mid:#0F5A7D;--accent:#007474;--bg:#e6f4f1;
   --bg2:#cceeee;--border:#2d7a6b;--muted:#4b6f6a;--text:#1e3a3a
 }
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(135deg,var(--bg),var(--bg2));color:var(--text)}
-.card{background:#fff;border-radius:16px;padding:32px 30px;width:min(380px,92vw);box-shadow:0 16px 48px rgba(0,0,0,.18)}
+
+body{
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding-bottom:20vh;
+  padding-left:65vw;
+  padding-right:5vw;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  color:var(--text);
+  background:url('login-bg.jpg') center center/cover no-repeat;
+
+.card{background:#fff;border-radius:16px;padding:32px 30px;width:min(380px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.35)}
 .brand{display:flex;gap:11px;align-items:center;margin-bottom:22px}
 .brand-mark{width:44px;height:44px;border-radius:10px;background:var(--accent);display:grid;place-items:center;font-weight:800;color:#fff}
 .brand-title{font-size:19px;font-weight:800;color:var(--dark)}
@@ -36,7 +49,7 @@ button:disabled{opacity:.6;cursor:default}
     </div>
   </div>
   <form id="loginForm">
-    <label for="username">Username</label>
+    <label for="username">Username/Singkatan Unit</label>
     <input id="username" type="text" autocomplete="username" required>
     <label for="password">Password</label>
     <input id="password" type="password" autocomplete="current-password" required>

@@ -156,6 +156,128 @@ const SCHEMAS = {
     numberFields: [],
     uniqueField: "username",
     importAliases: {}
+  },
+
+  pengeluaran: {
+    headers: [
+      "id","fileName","no_pp","create_pp","no_voucer","tgl_voucer","print_pp","nama_pp",
+      "program","unit","miscode","nama_program","course_title","nama_rekening_debet","nilai",
+      "cost_code","nama_cost_code","status_pp","id_class","id_sentralisasi","status_lokasi","uic",
+      "created_at","updated_at"
+    ],
+    dateFields: ["create_pp","tgl_voucer"],
+    numberFields: ["nilai"],
+    uniqueField: "",
+    importAliases: {
+      fileName:["fileName","FILE_NAME","FILE NAME"],
+      no_pp:["no_pp","No PP","NO_PP"],
+      create_pp:["create_pp","Create PP","CREATE_PP"],
+      no_voucer:["no_voucer","No Voucer","NO_VOUCER"],
+      tgl_voucer:["tgl_voucer","Tgl Voucer","TGL_VOUCER"],
+      print_pp:["print_pp","Print_pp","Print PP","PRINT_PP"],
+      nama_pp:["nama_pp","Nama PP","NAMA_PP"],
+      program:["program","Program"],
+      unit:["unit","Unit"],
+      miscode:["miscode","Miscode","MISCODE"],
+      nama_program:["nama_program","Nama Program"],
+      course_title:["course_title","Course Title"],
+      nama_rekening_debet:["nama_rekening_debet","Nama Rekening Debet"],
+      nilai:["nilai","Nilai"],
+      cost_code:["cost_code","Cost Code"],
+      nama_cost_code:["nama_cost_code","Nama Cost Code"],
+      status_pp:["status_pp","Status PP"],
+      id_class:["id_class","ID Class","ID_CLASS"],
+      id_sentralisasi:["id_sentralisasi","ID Sentralisasi"],
+      status_lokasi:["status_lokasi","Status Lokasi"],
+      uic:["uic","UIC"]
+    }
+  },
+
+  keu_smarter: {
+    headers: [
+      "id","fileName","no_pp","create_pp","no_voucer","tgl_voucer","print_pp","nama_pp",
+      "program","unit","miscode","nama_program","course_title","debet","nama_rekening_debet",
+      "kredit","nama_rekening_kredit","nilai","keterangan","cost_code","nama_cost_code",
+      "status_pp","id_class","id_sentralisasi","status_lokasi","pengajuan_biaya",
+      "biaya_pelatihan","kelompok","alokasi","saldo","tgl_report","created_at","updated_at"
+    ],
+    dateFields: ["create_pp","tgl_voucer","tgl_report"],
+    numberFields: ["debet","kredit","nilai","pengajuan_biaya","biaya_pelatihan","alokasi","saldo"],
+    uniqueField: "",
+    importAliases: {
+      fileName:["fileName","FILE_NAME","FILE NAME"],
+      no_pp:["no_pp","No PP","NO_PP"],
+      create_pp:["create_pp","Create PP","CREATE_PP"],
+      no_voucer:["no_voucer","No Voucer","NO_VOUCER"],
+      tgl_voucer:["tgl_voucer","Tgl Voucer","TGL_VOUCER"],
+      print_pp:["print_pp","Print_pp","Print PP","PRINT_PP"],
+      nama_pp:["nama_pp","Nama PP","NAMA_PP"],
+      program:["program","Program"],
+      unit:["unit","Unit"],
+      miscode:["miscode","Miscode","MISCODE"],
+      nama_program:["nama_program","Nama Program"],
+      course_title:["course_title","Course Title"],
+      debet:["debet","Debet"],
+      nama_rekening_debet:["nama_rekening_debet","Nama Rekening Debet"],
+      kredit:["kredit","Kredit"],
+      nama_rekening_kredit:["nama_rekening_kredit","Nama Rekening Kredit"],
+      nilai:["nilai","Nilai"],
+      keterangan:["keterangan","Keterangan"],
+      cost_code:["cost_code","Cost Code"],
+      nama_cost_code:["nama_cost_code","Nama Cost Code"],
+      status_pp:["status_pp","Status PP"],
+      id_class:["id_class","ID Class","ID_CLASS"],
+      id_sentralisasi:["id_sentralisasi","ID Sentralisasi"],
+      status_lokasi:["status_lokasi","Status Lokasi"],
+      pengajuan_biaya:["pengajuan_biaya","Pengajuan Biaya"],
+      biaya_pelatihan:["biaya_pelatihan","Biaya Pelatihan"],
+      kelompok:["kelompok","Kelompok"],
+      alokasi:["alokasi","Alokasi"],
+      saldo:["saldo","Saldo"],
+      tgl_report:["tgl_report","Tgl Report"]
+    }
+  },
+
+  keu_portal: {
+    headers: [
+      "id","fileName","src_id","no_pp","no_voucer","pic","nama_pp","program","tgl_voucer",
+      "miscode","created_by","create_date","update_date","update_by","keterangan","debet",
+      "nama_rekening_debet","kredit","nama_rekening_kredit","print_flag","terima_flag",
+      "reject_flag","tanggal_buku","kn_flag","nilai","status_pp","status_lokasi","tgl_report",
+      "created_at","updated_at"
+    ],
+    dateFields: ["tgl_voucer","create_date","update_date","tanggal_buku","tgl_report"],
+    numberFields: ["debet","kredit","nilai"],
+    uniqueField: "",
+    importAliases: {
+      fileName:["fileName","FILE_NAME","FILE NAME"],
+      src_id:["src_id","id","ID"],
+      no_pp:["no_pp","No PP","NO_PP"],
+      no_voucer:["no_voucer","No Voucer","NO_VOUCER"],
+      pic:["pic","PIC"],
+      nama_pp:["nama_pp","Nama PP","NAMA_PP"],
+      program:["program","Program"],
+      tgl_voucer:["tgl_voucer","Tgl Voucer","TGL_VOUCER"],
+      miscode:["miscode","Miscode","MISCODE"],
+      created_by:["created_by","Created By"],
+      create_date:["create_date","Create Date"],
+      update_date:["update_date","Update Date"],
+      update_by:["update_by","Update By"],
+      keterangan:["keterangan","Keterangan"],
+      debet:["debet","Debet"],
+      nama_rekening_debet:["nama_rekening_debet","Nama Rekening Debet"],
+      kredit:["kredit","Kredit"],
+      nama_rekening_kredit:["nama_rekening_kredit","Nama Rekening Kredit"],
+      print_flag:["print_flag","Print Flag"],
+      terima_flag:["terima_flag","Terima Flag"],
+      reject_flag:["reject_flag","Reject Flag"],
+      tanggal_buku:["tanggal_buku","Tanggal Buku"],
+      kn_flag:["kn_flag","KN Flag"],
+      nilai:["nilai","Nilai"],
+      status_pp:["status_pp","Status PP"],
+      status_lokasi:["status_lokasi","Status Lokasi"],
+      tgl_report:["tgl_report","Tgl Report"]
+    }
   }
 
 };
