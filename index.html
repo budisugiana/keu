@@ -4,6 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rencana Kelas — ICMS</title>
+<script>
+(function(){
+  const raw = sessionStorage.getItem("icms_session");
+  let valid = false;
+  if(raw){
+    try{
+      const s = JSON.parse(raw);
+      if(s.token && s.expires && new Date(s.expires).getTime() > Date.now()) valid = true;
+    }catch(e){}
+  }
+  if(!valid){
+    sessionStorage.removeItem("icms_session");
+    window.location.href = "login.html";
+  }
+})();
+</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -53,10 +69,11 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-ser
       <a href="#" onclick="return false">👥 Peserta</a>
       <a href="#" onclick="return false">🎓 Sertifikat</a>
       <a href="#" onclick="return false">📊 Dashboard</a>
+      <a id="navUsers" href="users.html" style="display:none">🔐 Kelola User</a>
     </nav>
     <div class="sidebar-bottom">
-      <div class="small">Online version</div>
-      <div class="small">GitHub Pages + Google Sheets</div>
+      <div class="small" id="whoami">Memuat...</div>
+      <button class="btn gray" style="width:100%;margin-top:8px" onclick="logout()">🚪 Logout</button>
     </div>
   </aside>
 
@@ -196,22 +213,56 @@ const NUMBER_FIELDS = [
 ];
 const DATE_FIELDS = ["tgl_awal","tgl_akhir","tahun"];
 
-document.addEventListener("DOMContentLoaded", loadData);
+document.addEventListener("DOMContentLoaded", ()=>{ initAuthUI(); loadData(); });
+
+// ============================================================
+// AUTH: session token, tampilan user, logout
+// ============================================================
+function getSession(){
+  const raw = sessionStorage.getItem("icms_session");
+  if(!raw) return null;
+  try{
+    const s = JSON.parse(raw);
+    if(!s.token || !s.expires || new Date(s.expires).getTime() <= Date.now()) return null;
+    return s;
+  }catch(e){ return null; }
+}
+function currentToken(){ const s=getSession(); return s ? s.token : ""; }
+function initAuthUI(){
+  const s = getSession();
+  if(!s){ window.location.href = "login.html"; return; }
+  document.getElementById("whoami").textContent = s.username + " (" + s.role + ")";
+  if(s.role==="admin"){
+    const el=document.getElementById("navUsers");
+    if(el) el.style.display = "";
+  }
+}
+function handleAuthError(msg){
+  if(/[Ss]esi/.test(msg||"")){
+    sessionStorage.removeItem("icms_session");
+    window.location.href = "login.html";
+  }
+}
+async function logout(){
+  try{ await apiPost({action:"logout", token:currentToken()}); }catch(e){}
+  sessionStorage.removeItem("icms_session");
+  window.location.href = "login.html";
+}
 
 async function apiGet(params={}){
   if(!API_URL || API_URL.startsWith("PASTE_")) throw new Error("API_URL belum diisi.");
-  const q = new URLSearchParams({key:API_KEY,...params});
+  const q = new URLSearchParams({key:API_KEY, token:currentToken(), ...params});
   const res = await fetch(API_URL+"?"+q.toString(), {method:"GET"});
   const text = await res.text();
   let json;
   try{json=JSON.parse(text)}catch(e){throw new Error("Respons API bukan JSON: "+text.slice(0,300))}
-  if(!json.ok) throw new Error(json.msg || "API error");
+  if(!json.ok){ handleAuthError(json.msg); throw new Error(json.msg || "API error"); }
   return json;
 }
 
 async function apiPost(payload){
   // Apps Script Web App dapat menerima form-urlencoded.
-  const body = new URLSearchParams({key:API_KEY,...payload});
+  const body = new URLSearchParams({key:API_KEY, token:currentToken(), ...payload});
   const res = await fetch(API_URL, {
     method:"POST",
     headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},
@@ -220,7 +271,7 @@ async function apiPost(payload){
   const text = await res.text();
   let json;
   try{json=JSON.parse(text)}catch(e){throw new Error("Respons API bukan JSON: "+text.slice(0,300))}
-  if(!json.ok) throw new Error(json.msg || "API error");
+  if(!json.ok){ handleAuthError(json.msg); throw new Error(json.msg || "API error"); }
   return json;
 }
 

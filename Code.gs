@@ -17,7 +17,10 @@
 const CONFIG = {
   SPREADSHEET_ID: "1pWrUcwejLGMmff0oSywZZcAPy-3pDvqr3czenc0dzfA",
   API_KEY: "2026-BNU-KARTUKONTROL",
-  DEFAULT_SHEET: "rencana_kelas"
+  DEFAULT_SHEET: "rencana_kelas",
+  AUTH_SALT: "GANTI-DENGAN-STRING-ACAK-MILIK-SENDIRI-2026",
+  SESSION_HOURS: 8,
+  SESSIONS_SHEET: "_sessions"
 };
 
 /**
@@ -145,6 +148,14 @@ const SCHEMAS = {
       learner:["Learner"],
       biaya_pelatihan:["Biaya Pelatihan"]
     }
+  },
+
+  users: {
+    headers: ["id","username","password_hash","role","active","created_at","updated_at"],
+    dateFields: [],
+    numberFields: [],
+    uniqueField: "username",
+    importAliases: {}
   }
 
 };
@@ -178,6 +189,12 @@ function doGet(e){
     auth_(e.parameter.key);
     const action = e.parameter.action || "list";
     const sheetName = e.parameter.sheet || CONFIG.DEFAULT_SHEET;
+    if(action==="checkSession"){
+      const u=validateSession_(e.parameter.token);
+      return json_({ok:true,username:u.username,role:u.role});
+    }
+    const session=requireSession_(e.parameter.token);
+    if(sheetName==="users" && session.role!=="admin") throw new Error("Hanya admin yang dapat melihat data user.");
     if(action==="list") return json_({ok:true,data:list_(sheetName)});
     if(action==="setup") return json_({ok:true,msg:setupSheet_(sheetName)});
     if(action==="setupAll") return json_({ok:true,msg:setupAllSheets()});
@@ -192,6 +209,10 @@ function doPost(e){
     auth_(p.key);
     const action = p.action || "";
     const sheetName = p.sheet || CONFIG.DEFAULT_SHEET;
+    if(action==="login") return json_(login_(p));
+    if(action==="logout"){ destroySession_(p.token); return json_({ok:true,msg:"Logout berhasil."}); }
+    const session=requireSession_(p.token);
+    if(sheetName==="users" && session.role!=="admin") throw new Error("Hanya admin yang dapat mengelola user.");
     if(action==="save") return json_(save_(sheetName,p));
     if(action==="delete") return json_(delete_(sheetName,p.id));
     if(action==="deleteAll") return json_(deleteAll_(sheetName));
@@ -202,6 +223,115 @@ function doPost(e){
 
 function auth_(key){
   if(CONFIG.API_KEY && key !== CONFIG.API_KEY) throw new Error("API key tidak valid.");
+}
+
+// ============================================================
+// AUTH: hashing, session, login/logout
+// ============================================================
+
+function hashPassword_(pw){
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(pw)+CONFIG.AUTH_SALT);
+  return bytes.map(b=>((b<0?b+256:b).toString(16)).padStart(2,"0")).join("");
+}
+
+function sessionsSheet_(){
+  const ss=SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  let sh=ss.getSheetByName(CONFIG.SESSIONS_SHEET);
+  if(!sh){
+    sh=ss.insertSheet(CONFIG.SESSIONS_SHEET);
+    sh.getRange(1,1,1,5).setValues([["token","username","role","created_at","expires_at"]]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function createSession_(username,role){
+  const sh=sessionsSheet_();
+  const token=Utilities.getUuid();
+  const now=new Date();
+  const expires=new Date(now.getTime()+CONFIG.SESSION_HOURS*3600*1000);
+  sh.appendRow([token,username,role,now,expires]);
+  return {token,expires};
+}
+
+function validateSession_(token){
+  if(!token) throw new Error("Sesi tidak ditemukan. Silakan login.");
+  const sh=sessionsSheet_();
+  const rows=sh.getDataRange().getValues();
+  for(let i=1;i<rows.length;i++){
+    if(String(rows[i][0])===String(token)){
+      const expires=new Date(rows[i][4]);
+      if(isNaN(expires.getTime())||expires.getTime()<Date.now()){
+        sh.deleteRow(i+1);
+        throw new Error("Sesi kadaluarsa. Silakan login ulang.");
+      }
+      return {username:rows[i][1], role:rows[i][2]};
+    }
+  }
+  throw new Error("Sesi tidak valid. Silakan login ulang.");
+}
+
+function requireSession_(token){
+  return validateSession_(token);
+}
+
+function destroySession_(token){
+  if(!token)return;
+  const sh=sessionsSheet_();
+  const rows=sh.getDataRange().getValues();
+  for(let i=1;i<rows.length;i++){
+    if(String(rows[i][0])===String(token)){ sh.deleteRow(i+1); return; }
+  }
+}
+
+function login_(p){
+  const username=String(p.username||"").trim();
+  const password=String(p.password||"");
+  if(!username||!password) throw new Error("Username dan password wajib diisi.");
+  const sh=sheet_("users");
+  const rows=sh.getDataRange().getValues();
+  const headers=rows[0];
+  const idxUser=headers.indexOf("username");
+  const idxHash=headers.indexOf("password_hash");
+  const idxRole=headers.indexOf("role");
+  const idxActive=headers.indexOf("active");
+  for(let i=1;i<rows.length;i++){
+    if(String(rows[i][idxUser]).trim().toLowerCase()===username.toLowerCase()){
+      const activeVal=String(rows[i][idxActive]).trim().toLowerCase();
+      if(activeVal==="false"||activeVal==="0"||activeVal==="tidak"||activeVal==="nonaktif"){
+        throw new Error("Akun ini dinonaktifkan. Hubungi admin.");
+      }
+      if(String(rows[i][idxHash])!==hashPassword_(password)){
+        throw new Error("Username atau password salah.");
+      }
+      const role=rows[i][idxRole]||"user";
+      const session=createSession_(username,role);
+      return {ok:true,token:session.token,username,role,expires:session.expires};
+    }
+  }
+  throw new Error("Username atau password salah.");
+}
+
+/**
+ * Jalankan fungsi ini SEKALI SAJA secara manual dari editor Apps Script
+ * (Run > createInitialAdmin_) untuk membuat akun admin pertama.
+ * Ganti username & password di bawah sebelum menjalankan, lalu setelah
+ * berhasil, hapus/kosongkan kembali nilai password di sini agar tidak
+ * tertinggal dalam kode.
+ */
+function createInitialAdmin_(){
+  const username="admin";
+  const password="GantiPasswordIni123!";
+  const sh=sheet_("users");
+  const rows=sh.getDataRange().getValues();
+  for(let i=1;i<rows.length;i++){
+    if(String(rows[i][1]).trim().toLowerCase()===username.toLowerCase()){
+      return "User '"+username+"' sudah ada, tidak dibuat ulang.";
+    }
+  }
+  const now=new Date();
+  sh.appendRow([Utilities.getUuid(),username,hashPassword_(password),"admin",true,now,now]);
+  return "Admin awal berhasil dibuat: "+username+" (segera login lalu ganti passwordnya).";
 }
 
 function sheet_(sheetName){
@@ -217,11 +347,13 @@ function list_(sheetName){
   const values=sh.getDataRange().getValues();
   if(values.length<2)return [];
   const headers=values[0];
-  return values.slice(1).filter(r=>r.some(v=>v!=="")).map(r=>{
+  const rows=values.slice(1).filter(r=>r.some(v=>v!=="")).map(r=>{
     const o={};
     headers.forEach((h,i)=>o[h]=normalize_(r[i]));
     return o;
   });
+  if(sheetName==="users") rows.forEach(o=>{ delete o.password_hash; });
+  return rows;
 }
 
 function save_(sheetName,p){
@@ -253,6 +385,19 @@ function save_(sheetName,p){
   const createdAtIdx=headers.indexOf("created_at");
   const old = rowIndex>0 ? rows[rowIndex-1] : [];
   const createdAt = rowIndex>0 && createdAtIdx>-1 ? old[createdAtIdx] : now;
+
+  // Untuk tabel users: hash password sebelum disimpan, jangan pernah simpan teks asli.
+  if(sheetName==="users"){
+    if(p.password){
+      p.password_hash = hashPassword_(p.password);
+    }else if(rowIndex>0){
+      const hashIdx=headers.indexOf("password_hash");
+      p.password_hash = hashIdx>-1 ? old[hashIdx] : "";
+    }else{
+      throw new Error("Password wajib diisi untuk user baru.");
+    }
+    if(p.active===undefined || p.active==="") p.active = true;
+  }
 
   const obj={id:id};
   headers.forEach(h=>{
