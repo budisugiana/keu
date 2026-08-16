@@ -435,25 +435,54 @@ function login_(p){
 }
 
 /**
- * Jalankan fungsi ini SEKALI SAJA secara manual dari editor Apps Script
- * (Run > createInitialAdmin_) untuk membuat akun admin pertama.
- * Ganti username & password di bawah sebelum menjalankan, lalu setelah
- * berhasil, hapus/kosongkan kembali nilai password di sini agar tidak
- * tertinggal dalam kode.
+ * ============================================================
+ * CARA PAKAI (jalankan SEKALI SAJA, saat setup awal sistem):
+ * 1. Ganti nilai username & password di bawah ini sesuai keinginan.
+ * 2. Di editor Apps Script, pilih fungsi "buatAdminPertama" dari
+ *    dropdown fungsi (di sebelah tombol Run/▶), lalu klik Run.
+ * 3. Buka tab "Execution log" (Ctrl+Enter) untuk melihat hasilnya.
+ * 4. Setelah berhasil, langsung login di aplikasi dengan akun ini,
+ *    lalu SEGERA ganti passwordnya lewat halaman "Kelola User".
+ * 5. Setelah admin pertama berhasil dibuat, kosongkan/ganti lagi
+ *    nilai password di bawah ini agar tidak tertinggal di kode.
+ * ============================================================
  */
-function createInitialAdmin_(){
-  const username="admin";
-  const password="GantiPasswordIni123!";
-  const sh=sheet_("users");
+function buatAdminPertama(){
+  const username="";
+  const password="";
+
+  if(!username || !password || password.length<8){
+    Logger.log("Gagal: username wajib diisi dan password minimal 8 karakter.");
+    return "Gagal: username wajib diisi dan password minimal 8 karakter.";
+  }
+
+  const sh=sheet_("users"); // otomatis membuat sheet 'users' + header jika belum ada
   const rows=sh.getDataRange().getValues();
+  const headers=rows[0];
+  const idxUser=headers.indexOf("username");
+  const idxRole=headers.indexOf("role");
+
+  // Cegah duplikat username yang sama.
   for(let i=1;i<rows.length;i++){
-    if(String(rows[i][1]).trim().toLowerCase()===username.toLowerCase()){
-      return "User '"+username+"' sudah ada, tidak dibuat ulang.";
+    if(String(rows[i][idxUser]).trim().toLowerCase()===username.toLowerCase()){
+      const msg="User '"+username+"' sudah ada, tidak dibuat ulang.";
+      Logger.log(msg);
+      return msg;
     }
   }
+
+  // Info saja (tidak menghentikan proses): beri tahu jika sudah ada admin lain.
+  const adminExists = rows.slice(1).some(r=>String(r[idxRole]).trim().toLowerCase()==="admin");
+  if(adminExists){
+    Logger.log("Catatan: sudah ada admin lain di sheet 'users'. Tetap membuat admin baru: "+username);
+  }
+
   const now=new Date();
-  sh.appendRow([Utilities.getUuid(),username,hashPassword_(password),"admin",true,now,now]);
-  return "Admin awal berhasil dibuat: "+username+" (segera login lalu ganti passwordnya).";
+  sh.appendRow([Utilities.getUuid(), username, hashPassword_(password), "admin", true, now, now]);
+
+  const result="✅ Admin pertama berhasil dibuat.\nUsername: "+username+"\nSegera login lalu ganti password lewat halaman Kelola User.";
+  Logger.log(result);
+  return result;
 }
 
 function sheet_(sheetName){
