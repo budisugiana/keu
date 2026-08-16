@@ -89,7 +89,7 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-ser
   <main class="main">
     <section class="hero">
       <h1>Rekap Program</h1>
-      <p>Rekap gabungan program: UIC, subprogram, pengelola, periode, metode, jumlah hari, learner, dan biaya pelatihan.</p>
+      <p>Rekap gabungan program: UIC, subprogram, pengelola, periode, metode, Jumlah Batch, learner, dan biaya pelatihan.</p>
 
       <div class="filter-title">🔎 Filter Data</div>
       <div class="filters">
@@ -113,7 +113,7 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-ser
 
     <section class="summary">
       <div class="card"><div class="label">Total Program</div><div class="value" id="sumProgram">0</div></div>
-      <div class="card"><div class="label">Total Jumlah Hari</div><div class="value" id="sumHari">0</div></div>
+      <div class="card"><div class="label">Total Jumlah Batch</div><div class="value" id="sumHari">0</div></div>
       <div class="card"><div class="label">Total Learner</div><div class="value" id="sumLearner">0</div></div>
       <div class="card"><div class="label">Total Biaya Pelatihan</div><div class="value" id="sumBiaya">Rp 0</div></div>
     </section>
@@ -175,7 +175,7 @@ const FIELD_DEFS = [
 
   {key:"tgl_awal", label:"Tgl Awal", type:"date", group:"Periode & Pelaksanaan"},
   {key:"tgl_akhir", label:"Tgl Akhir", type:"date", group:"Periode & Pelaksanaan"},
-  {key:"jumlah_hari", label:"Jumlah Hari", type:"number", group:"Periode & Pelaksanaan"},
+  {key:"jumlah_hari", label:"Jumlah Batch", type:"number", group:"Periode & Pelaksanaan"},
   {key:"learner", label:"Learner", type:"number", group:"Periode & Pelaksanaan"},
   {key:"biaya_pelatihan", label:"Biaya Pelatihan", type:"number", group:"Periode & Pelaksanaan"}
 ];
