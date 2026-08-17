@@ -138,7 +138,10 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
 
     <div class="section-title">
       <span>📋 Data Summary</span>
-      <button class="btn teal" onclick="toggleColumnPanel()" id="colPanelToggleBtn">🧮 Pilih Kolom yang Ditampilkan</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn teal" onclick="toggleColumnPanel()" id="colPanelToggleBtn">🧮 Pilih Kolom yang Ditampilkan</button>
+        <button class="btn purple" onclick="toggleColorPanel()" id="colorPanelToggleBtn">🎨 Atur Warna Kolom</button>
+      </div>
     </div>
 
     <!-- ============================================================
@@ -158,6 +161,21 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
         <span class="colpanel-count" id="colpanelCount"></span>
       </div>
       <div class="colpick-groups" id="colpickGroups"></div>
+    </section>
+
+    <!-- ============================================================
+         PANEL ATUR WARNA KOLOM — panel/tombol terpisah dari panel pilih
+         kolom di atas. Daftar semua kolom dikelompokkan sama seperti
+         panel pilih kolom; setiap kolom punya tombol 🎨 untuk membuka
+         modal Format (sama dgn format baris) dan tombol ✕ untuk reset
+         cepat. Format kolom disimpan di colStyles (localStorage) dan
+         MENANG dibanding format baris kalau bentrok di sel yang sama.
+         ============================================================ -->
+    <section id="colorPanel" class="colpanel hidden">
+      <div class="colpanel-toolbar">
+        <span class="colpanel-count" id="colorpanelCount"></span>
+      </div>
+      <div class="colpick-groups" id="colorpickGroups"></div>
     </section>
 
     <div class="table-wrap">
@@ -195,8 +213,9 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
 <!-- Modal Format Baris: warna latar, warna teks, ukuran teks, bold — dibuka dari tombol 🎨 di kolom Aksi -->
 <div id="formatModal" class="modal-overlay hidden">
   <div class="modal-box" style="width:min(420px,94vw)">
-    <div class="modal-title">🎨 Format Baris</div>
+    <div class="modal-title" id="formatModalTitle">🎨 Format Baris</div>
     <input type="hidden" id="fmt_id">
+    <input type="hidden" id="fmt_type" value="row">
 
     <div class="form-section">
       <div class="form-section-title">Warna Latar Belakang</div>
@@ -340,11 +359,22 @@ function loadRowStyles(){
 function saveRowStyles(obj){
   localStorage.setItem(ROW_STYLES_KEY, JSON.stringify(obj));
 }
+const COL_STYLES_KEY = "icms_summary_col_styles";
+function loadColStyles(){
+  try{
+    const raw = localStorage.getItem(COL_STYLES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){ return {}; }
+}
+function saveColStyles(obj){
+  localStorage.setItem(COL_STYLES_KEY, JSON.stringify(obj));
+}
 
 let visibleCols = loadVisibleCols();
 let rowStyles = loadRowStyles();
+let colStyles = loadColStyles();
 
-document.addEventListener("DOMContentLoaded", ()=>{ initAuthUI(); buildForm(); buildTableHead(); initColumnPicker(); loadData(); });
+document.addEventListener("DOMContentLoaded", ()=>{ initAuthUI(); buildForm(); buildTableHead(); initColumnPicker(); initColorPicker(); loadData(); });
 
 // ============================================================
 // AUTH: session token, tampilan user, logout
@@ -514,7 +544,21 @@ function renderTable(){
       const cls = ["td"];
       if(f.key==="Anggaran UNIT") cls.push("left");
       if(!visibleCols.has(f.key)) cls.push("col-hidden");
-      return `<td data-col="${escapeAttr(f.key)}" class="${cls.join(" ")}">${v}</td>`;
+      // Gabungkan format baris (st) dengan format kolom (colSt) — kolom MENANG kalau bentrok.
+      const colSt = colStyles[f.key] || {};
+      const merged = {
+        bg: colSt.bg !== undefined ? colSt.bg : st.bg,
+        color: colSt.color !== undefined ? colSt.color : st.color,
+        size: colSt.size !== undefined ? colSt.size : st.size,
+        bold: colSt.bold !== undefined ? colSt.bold : st.bold
+      };
+      const cellParts = [];
+      if(merged.bg) cellParts.push(`background:${merged.bg}`);
+      if(merged.color) cellParts.push(`color:${merged.color}`);
+      if(merged.size) cellParts.push(`font-size:${merged.size}px`);
+      if(merged.bold) cellParts.push(`font-weight:700`);
+      const cellStyleAttr = cellParts.length ? ` style="${escapeAttr(cellParts.join(";"))}"` : "";
+      return `<td data-col="${escapeAttr(f.key)}" class="${cls.join(" ")}"${cellStyleAttr}>${v}</td>`;
     }).join("");
     return `<tr data-rowid="${escapeAttr(r.id)}"${styleAttr}>
       <td class="sticky-col"${styleAttr}>${start+i+1}</td>
@@ -537,16 +581,31 @@ function changePage(delta){
 }
 
 // ============================================================
-// FITUR 3: Format baris — warna latar, warna teks, ukuran teks,
-// dan bold, semuanya lewat tombol 🎨 di kolom Aksi (bukan input
-// terpisah lagi). Disimpan per-id di localStorage lewat rowStyles,
-// jadi tetap ada walau data dimuat ulang / halaman dibuka lagi.
+// FITUR 3: Format baris & kolom — warna latar, warna teks, ukuran
+// teks, dan bold. Satu modal (#formatModal) dipakai untuk KEDUANYA:
+//   - Format baris: dibuka lewat tombol 🎨 di kolom Aksi tiap baris,
+//     disimpan di rowStyles (localStorage: icms_summary_row_styles).
+//   - Format kolom: dibuka lewat panel "🎨 Atur Warna Kolom" di atas
+//     tabel, disimpan di colStyles (localStorage: icms_summary_col_styles).
+// Kalau format baris & kolom bentrok di sel yang sama, KOLOM MENANG
+// (lihat penggabungan "merged" di dalam renderTable()).
 // ============================================================
 function openFormat(id){
-  const s = rowStyles[id] || {};
-
+  document.getElementById("fmt_type").value = "row";
+  document.getElementById("formatModalTitle").textContent = "🎨 Format Baris";
+  fillFormatFields(rowStyles[id] || {});
   document.getElementById("fmt_id").value = id;
-
+  document.getElementById("formatModal").classList.remove("hidden");
+}
+function openColumnFormat(key){
+  const def = FIELD_DEFS.find(f=>f.key===key);
+  document.getElementById("fmt_type").value = "col";
+  document.getElementById("formatModalTitle").textContent = "🎨 Format Kolom: " + (def ? def.label : key);
+  fillFormatFields(colStyles[key] || {});
+  document.getElementById("fmt_id").value = key;
+  document.getElementById("formatModal").classList.remove("hidden");
+}
+function fillFormatFields(s){
   const hasBg = s.bg !== undefined;
   document.getElementById("fmt_use_bg").checked = hasBg;
   document.getElementById("fmt_bg").value = s.bg || "#ffffff";
@@ -563,8 +622,6 @@ function openFormat(id){
   document.getElementById("fmt_size").disabled = !hasSize;
 
   document.getElementById("fmt_bold").checked = !!s.bold;
-
-  document.getElementById("formatModal").classList.remove("hidden");
 }
 function closeFormatModal(){
   document.getElementById("formatModal").classList.add("hidden");
@@ -573,6 +630,7 @@ function toggleFmtField(checkboxId, fieldId){
   document.getElementById(fieldId).disabled = !document.getElementById(checkboxId).checked;
 }
 function saveFormat(){
+  const type = document.getElementById("fmt_type").value;
   const id = document.getElementById("fmt_id").value;
   if(!id) return;
 
@@ -590,22 +648,78 @@ function saveFormat(){
     style.bold = true;
   }
 
-  if(Object.keys(style).length){
-    rowStyles[id] = style;
+  if(type==="col"){
+    if(Object.keys(style).length){ colStyles[id] = style; } else { delete colStyles[id]; }
+    saveColStyles(colStyles);
+    renderColorPickerGroups();
+    updateColorpanelCount();
   }else{
-    delete rowStyles[id];
+    if(Object.keys(style).length){ rowStyles[id] = style; } else { delete rowStyles[id]; }
+    saveRowStyles(rowStyles);
   }
-  saveRowStyles(rowStyles);
   closeFormatModal();
   renderTable();
 }
 function resetFormat(){
+  const type = document.getElementById("fmt_type").value;
   const id = document.getElementById("fmt_id").value;
   if(id){
-    delete rowStyles[id];
-    saveRowStyles(rowStyles);
+    if(type==="col"){
+      delete colStyles[id];
+      saveColStyles(colStyles);
+      renderColorPickerGroups();
+      updateColorpanelCount();
+    }else{
+      delete rowStyles[id];
+      saveRowStyles(rowStyles);
+    }
   }
   closeFormatModal();
+  renderTable();
+}
+
+// ------------------------------------------------------------
+// Panel "Atur Warna Kolom" — daftar semua kolom (dikelompokkan sama
+// seperti panel pilih kolom), tiap kolom punya tombol 🎨 (buka modal
+// format) dan tombol ✕ (reset cepat kalau sudah dikustomisasi).
+// ------------------------------------------------------------
+function initColorPicker(){
+  renderColorPickerGroups();
+  updateColorpanelCount();
+}
+function toggleColorPanel(){
+  document.getElementById("colorPanel").classList.toggle("hidden");
+}
+function renderColorPickerGroups(){
+  const wrap = document.getElementById("colorpickGroups");
+  wrap.innerHTML = GROUPS.map(g=>{
+    const fields = FIELD_DEFS.filter(f=>f.group===g);
+    return `<div class="colpick-group">
+      <div class="colpick-group-title"><span>${escapeHtml(g)}</span></div>
+      <div class="colpick-list">
+        ${fields.map(f=>{
+          const custom = !!colStyles[f.key];
+          return `<label style="justify-content:space-between">
+            <span>${custom?"🟢 ":""}${escapeHtml(f.label)}</span>
+            <span style="display:flex;gap:4px">
+              <button type="button" class="miniBtn" title="Atur format kolom ini" onclick="openColumnFormat('${escapeAttr(f.key)}')">🎨</button>
+              ${custom?`<button type="button" class="miniBtn" title="Hapus format kustom" onclick="clearColumnFormat('${escapeAttr(f.key)}')">✕</button>`:""}
+            </span>
+          </label>`;
+        }).join("")}
+      </div>
+    </div>`;
+  }).join("");
+}
+function updateColorpanelCount(){
+  const el = document.getElementById("colorpanelCount");
+  if(el) el.textContent = `${Object.keys(colStyles).length} dari ${FIELD_DEFS.length} kolom memiliki format kustom`;
+}
+function clearColumnFormat(key){
+  delete colStyles[key];
+  saveColStyles(colStyles);
+  renderColorPickerGroups();
+  updateColorpanelCount();
   renderTable();
 }
 
