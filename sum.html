@@ -1243,5 +1243,210 @@ function escapeAttr(v){return String(v??"").replace(/'/g,"\\'").replace(/"/g,'&q
 function num(v,d=0){return Number(v||0).toLocaleString("id-ID",{minimumFractionDigits:d,maximumFractionDigits:d})}
 function money(v){return "Rp "+Number(v||0).toLocaleString("id-ID",{maximumFractionDigits:0})}
 </script>
+
+<style>
+  /* Multi-table controls */
+  .multi-table-toolbar{
+    display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+    margin:10px 0 14px;
+  }
+  .multi-table-toolbar button,
+  .table-instance-toolbar button{
+    border:1px solid #cbd5e1;background:#fff;color:#334155;
+    border-radius:7px;padding:7px 11px;cursor:pointer;font-size:12px;
+  }
+  .multi-table-toolbar button:hover,
+  .table-instance-toolbar button:hover{background:#f1f5f9}
+  .table-instance{margin-bottom:22px}
+  .table-instance.is-clone{border-top:1px solid #e2e8f0;padding-top:16px}
+  .table-instance-toolbar{
+    display:flex;justify-content:flex-end;gap:7px;margin-bottom:7px;
+  }
+  .column-picker{
+    display:none;position:absolute;right:0;top:38px;z-index:1000;
+    background:#fff;border:1px solid #cbd5e1;border-radius:8px;
+    box-shadow:0 8px 24px rgba(15,23,42,.12);padding:10px;min-width:240px;
+    max-height:360px;overflow:auto;
+  }
+  .column-picker.show{display:block}
+  .column-picker label{display:flex;gap:7px;align-items:center;padding:5px 3px;font-size:12px}
+  .column-picker-wrap{position:relative}
+  .table-instance .summary-table,
+  .table-instance table{width:100%}
+  .table-instance [data-column-key].is-column-hidden{display:none!important}
+</style>
+
+<script>
+(function(){
+  "use strict";
+
+  const STATE_KEY = "__summary_multi_table_state_v1";
+
+  function getTable(){
+    return document.querySelector("table");
+  }
+
+  function getHeaderCells(table){
+    if(!table) return [];
+    const row = table.tHead ? table.tHead.rows[0] : table.querySelector("tr");
+    return row ? Array.from(row.cells) : [];
+  }
+
+  function keyForHeader(cell, i){
+    const text = (cell.textContent || "").trim().replace(/\\s+/g," ");
+    return text || ("COL_"+(i+1));
+  }
+
+  function getAllColumns(table){
+    return getHeaderCells(table).map((c,i)=>({
+      index:i,
+      key:keyForHeader(c,i),
+      label:(c.textContent||"").trim() || ("Kolom "+(i+1))
+    }));
+  }
+
+  function applyColumns(instance, selected){
+    const table = instance.querySelector("table");
+    if(!table) return;
+    const headers = getHeaderCells(table);
+    const allowed = new Set(selected);
+
+    [headers, ...Array.from(table.tBodies).map(tb=>Array.from(tb.rows).flatMap(r=>Array.from(r.cells)))]
+      .flat();
+
+    const rows = Array.from(table.rows);
+    rows.forEach(row=>{
+      Array.from(row.cells).forEach((cell,i)=>{
+        const key = keyForHeader(headers[i],i);
+        cell.style.display = allowed.has(key) ? "" : "none";
+      });
+    });
+  }
+
+  function openPicker(instance){
+    const picker = instance.querySelector(".column-picker");
+    if(picker) picker.classList.toggle("show");
+  }
+
+  function buildPicker(instance, columns, selected){
+    const picker = instance.querySelector(".column-picker");
+    if(!picker) return;
+    picker.innerHTML = "";
+
+    columns.forEach(col=>{
+      const label=document.createElement("label");
+      const cb=document.createElement("input");
+      cb.type="checkbox";
+      cb.checked=selected.includes(col.key);
+      cb.dataset.columnKey=col.key;
+      cb.addEventListener("change",()=>{
+        const values=Array.from(picker.querySelectorAll("input:checked")).map(x=>x.dataset.columnKey);
+        if(!values.length){ cb.checked=true; return; }
+        applyColumns(instance,values);
+        instance.dataset.selectedColumns=JSON.stringify(values);
+      });
+      label.append(cb,document.createTextNode(col.label));
+      picker.appendChild(label);
+    });
+  }
+
+  function makeInstance(source, isClone){
+    const instance=document.createElement("section");
+    instance.className="table-instance"+(isClone?" is-clone":"");
+    instance.dataset.selectedColumns="[]";
+
+    const toolbar=document.createElement("div");
+    toolbar.className="table-instance-toolbar";
+
+    const pickerWrap=document.createElement("div");
+    pickerWrap.className="column-picker-wrap";
+
+    const pickBtn=document.createElement("button");
+    pickBtn.type="button";
+    pickBtn.textContent="⚙ Pilih Kolom";
+    pickBtn.onclick=()=>openPicker(instance);
+
+    const picker=document.createElement("div");
+    picker.className="column-picker";
+
+    const dup=document.createElement("button");
+    dup.type="button";
+    dup.textContent="⧉ Duplikat Tabel";
+    dup.onclick=()=>duplicateInstance(instance);
+
+    const del=document.createElement("button");
+    del.type="button";
+    del.textContent="🗑 Hapus";
+    del.onclick=()=>{
+      if(document.querySelectorAll(".table-instance").length>1) instance.remove();
+    };
+
+    pickerWrap.append(pickBtn,picker);
+    toolbar.append(pickerWrap,dup);
+    if(isClone) toolbar.append(del);
+    instance.append(toolbar,source);
+    return instance;
+  }
+
+  function duplicateInstance(instance){
+    const table=instance.querySelector("table");
+    if(!table) return;
+
+    const cloneTable=table.cloneNode(true);
+    const clone=makeInstance(cloneTable,true);
+
+    const columns=getAllColumns(cloneTable);
+    const selected=JSON.parse(instance.dataset.selectedColumns||"[]");
+    const actualSelected=selected.length ? selected : columns.map(x=>x.key);
+
+    clone.dataset.selectedColumns=JSON.stringify(actualSelected);
+    buildPicker(clone,columns,actualSelected);
+    applyColumns(clone,actualSelected);
+
+    instance.parentNode.insertBefore(clone,instance.nextSibling);
+  }
+
+  function initialize(){
+    const table=getTable();
+    if(!table || table.closest(".table-instance")) return;
+
+    // Preserve the existing table's surrounding DOM by moving only the table.
+    const parent=table.parentNode;
+    const wrapper=document.createElement("div");
+    wrapper.className="table-instance";
+    parent.insertBefore(wrapper,table);
+    wrapper.appendChild(table);
+
+    const columns=getAllColumns(table);
+    const selected=columns.map(x=>x.key);
+    wrapper.dataset.selectedColumns=JSON.stringify(selected);
+
+    const toolbar=document.createElement("div");
+    toolbar.className="table-instance-toolbar";
+    const pickerWrap=document.createElement("div");
+    pickerWrap.className="column-picker-wrap";
+    const pickBtn=document.createElement("button");
+    pickBtn.type="button"; pickBtn.textContent="⚙ Pilih Kolom";
+    const picker=document.createElement("div"); picker.className="column-picker";
+    pickBtn.onclick=()=>picker.classList.toggle("show");
+    pickerWrap.append(pickBtn,picker);
+
+    const dup=document.createElement("button");
+    dup.type="button"; dup.textContent="⧉ Duplikat Tabel";
+    dup.onclick=()=>duplicateInstance(wrapper);
+
+    toolbar.append(pickerWrap,dup);
+    wrapper.insertBefore(toolbar,table);
+    buildPicker(wrapper,columns,selected);
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",initialize);
+  }else{
+    initialize();
+  }
+})();
+</script>
+
 </body>
 </html>
