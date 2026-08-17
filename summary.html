@@ -551,10 +551,11 @@ function buildTableHead(){
   let html = `<th class="sticky-col">No</th>`;
   FIELD_DEFS.forEach(f=>{
     const hidden = visibleCols.has(f.key) ? "" : " col-hidden";
-    const cw = (colStyles[f.key] || {}).width;
+    const cs = colStyles[f.key] || {};
     const hs = colHeaderStyles[f.key] || {};
     const parts = [];
-    if(cw) parts.push(`width:${cw}px;min-width:${cw}px;max-width:${cw}px;overflow:hidden;text-overflow:ellipsis`);
+    if(cs.width) parts.push(`width:${cs.width}px;min-width:${cs.width}px;max-width:${cs.width}px;overflow:hidden;text-overflow:ellipsis`);
+    if(cs.wrap) parts.push(`white-space:normal;word-break:break-word`);
     if(hs.bg) parts.push(`background:${hs.bg}`);
     if(hs.color) parts.push(`color:${hs.color}`);
     if(hs.size) parts.push(`font-size:${hs.size}px`);
