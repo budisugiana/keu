@@ -91,6 +91,27 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
 }
 </style>
 
+<style id="locked-no-action-column">
+  /* Kolom No dikunci */
+  #dataTable th.no-col,
+  #dataTable td.no-col {
+    width:45px !important;
+    min-width:45px !important;
+    max-width:45px !important;
+    text-align:center;
+    white-space:nowrap !important;
+  }
+
+  /* Kolom Aksi dikunci */
+  #dataTable th.action-col,
+  #dataTable td.action-col {
+    width:105px !important;
+    min-width:105px !important;
+    max-width:105px !important;
+    text-align:center;
+    white-space:nowrap !important;
+  }
+</style>
 
 <style id="default-header-wrap">
 /* Semua header default WRAP */
@@ -584,7 +605,7 @@ function cssKey(k){ return k.replace(/[^a-zA-Z0-9]/g,"_"); }
 
 function buildTableHead(){
   const tr=document.getElementById("theadRow");
-  let html = `<th class="sticky-col">No</th>`;
+  let html = `<th class="sticky-col no-col">No</th>`;
   FIELD_DEFS.forEach(f=>{
     const hidden = visibleCols.has(f.key) ? "" : " col-hidden";
     const cs = colStyles[f.key] || {};
@@ -600,7 +621,7 @@ function buildTableHead(){
     const label = hs.label || f.label;
     html += `<th data-col="${escapeAttr(f.key)}" class="${hidden.trim()}"${styleAttr}>${escapeHtml(label)}</th>`;
   });
-  html += `<th class="sticky-col">Aksi</th>`;
+  html += `<th class="sticky-col action-col">Aksi</th>`;
   tr.innerHTML = html;
 }
 
@@ -749,9 +770,9 @@ function renderTable(){
       return `<td data-col="${escapeAttr(f.key)}" class="${cls.join(" ")}"${cellStyleAttr}>${v}</td>`;
     }).join("");
     return `<tr data-rowkey="${escapeAttr(rk)}"${styleAttr}>
-      <td class="sticky-col"${styleAttr}>${start+i+1}</td>
+      <td class="sticky-col no-col"${styleAttr}>${start+i+1}</td>
       ${cells}
-      <td class="sticky-col"${styleAttr}>
+      <td class="sticky-col action-col"${styleAttr}>
         <button class="icon-btn format" title="Format baris (warna, ukuran teks, bold, tinggi)" data-action="format" data-rowkey="${escapeAttr(rk)}">🎨</button>
         <button class="icon-btn edit" data-action="edit" data-rowkey="${escapeAttr(rk)}">✏️</button>
         <button class="icon-btn delete" data-action="delete" data-rowkey="${escapeAttr(rk)}">🗑️</button>
