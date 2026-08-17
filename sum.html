@@ -1686,5 +1686,225 @@ function money(v){return "Rp "+Number(v||0).toLocaleString("id-ID",{maximumFract
 })();
 </script>
 
+
+<style id="standalone-summary-block">
+  .summary-table-block{
+    margin-top:18px;
+    padding:0;
+    border:1px solid #b8d9d5;
+    border-radius:12px;
+    background:rgba(255,255,255,.35);
+    overflow:visible;
+  }
+  .summary-table-block.is-duplicate{
+    margin-top:22px;
+    padding-top:2px;
+    box-shadow:0 4px 14px rgba(20,80,80,.08);
+  }
+  .summary-table-block .section-title{margin-top:0}
+  .summary-table-block + .summary-table-block{border-top:3px solid #0f766e}
+</style>
+
+<script id="standalone-summary-duplicate">
+(function(){
+  "use strict";
+
+  function setupBlock(block, isClone){
+    if(!block) return;
+
+    block.querySelectorAll(".column-picker").forEach(x=>x.classList.remove("show"));
+
+    // Local column selection for this duplicated block.
+    const table = block.querySelector("table");
+    if(table){
+      const headers = Array.from(table.querySelectorAll("thead th"));
+      const keys = headers.map((h,i)=>({
+        key: h.getAttribute("data-col") || ("COL_"+i),
+        label: (h.textContent||"").trim() || ("Kolom "+(i+1)),
+        index:i
+      }));
+
+      const selectBtn = block.querySelector(".section-title button[id*='colPanelToggleBtn']");
+      const panel = block.querySelector(".colpanel");
+      const pickerPanel = panel && panel.id !== "colorPanel" ? panel : null;
+
+      if(selectBtn && pickerPanel){
+        selectBtn.onclick = function(){
+          pickerPanel.classList.toggle("hidden");
+        };
+      }
+
+      if(pickerPanel){
+        const wrap = pickerPanel.querySelector(".colpick-groups");
+        if(wrap){
+          wrap.innerHTML = "";
+          const group = document.createElement("div");
+          group.className="colpick-group";
+          const list = document.createElement("div");
+          list.className="colpick-list";
+
+          keys.forEach(col=>{
+            if(col.label==="No" || col.label==="Aksi") return;
+            const label=document.createElement("label");
+            const cb=document.createElement("input");
+            cb.type="checkbox";
+            cb.checked = !headers[col.index].classList.contains("col-hidden");
+            cb.addEventListener("change",function(){
+              Array.from(table.rows).forEach(row=>{
+                const cell=row.cells[col.index];
+                if(cell) cell.style.display=cb.checked ? "" : "none";
+              });
+            });
+            label.append(cb,document.createTextNode(col.label));
+            list.appendChild(label);
+          });
+          group.appendChild(list);
+          wrap.appendChild(group);
+        }
+      }
+
+      // Local "Atur Warna Kolom": HEX input, applied only to this table.
+      const colorBtn = block.querySelector(".section-title button[id*='colorPanelToggleBtn']");
+      const colorPanel = block.querySelectorAll(".colpanel")[1];
+      if(colorBtn && colorPanel){
+        colorBtn.onclick=function(){
+          colorPanel.classList.toggle("hidden");
+          if(!colorPanel.dataset.built){
+            colorPanel.dataset.built="1";
+            const wrap=colorPanel.querySelector(".colpick-groups");
+            wrap.innerHTML="";
+            const list=document.createElement("div");
+            list.className="colpick-list";
+            keys.forEach(col=>{
+              if(col.label==="No" || col.label==="Aksi") return;
+              const row=document.createElement("label");
+              row.style.justifyContent="space-between";
+              const name=document.createElement("span");
+              name.textContent=col.label;
+              const controls=document.createElement("span");
+              controls.style.cssText="display:flex;gap:4px;align-items:center";
+              const color=document.createElement("input");
+              color.type="color";
+              color.value="#FFFFFF";
+              color.title="Warna kolom";
+              color.style.cssText="width:28px;height:22px;padding:0;border:0";
+              const hex=document.createElement("input");
+              hex.type="text";
+              hex.value="#FFFFFF";
+              hex.maxLength=7;
+              hex.placeholder="#RRGGBB";
+              hex.style.cssText="width:82px;padding:3px 5px;border:1px solid #cbd5e1;border-radius:5px;font-size:10px";
+              function apply(v){
+                if(!/^#[0-9A-Fa-f]{6}$/.test(v)) return;
+                color.value=v;
+                hex.value=v.toUpperCase();
+                Array.from(table.rows).forEach(r=>{
+                  const cell=r.cells[col.index];
+                  if(cell) cell.style.backgroundColor=v;
+                });
+              }
+              color.oninput=()=>apply(color.value);
+              hex.oninput=()=>apply(hex.value.trim());
+              controls.append(color,hex);
+              row.append(name,controls);
+              list.appendChild(row);
+            });
+            wrap.appendChild(list);
+          }
+        };
+      }
+
+      // Local title/header editing for the duplicated block.
+      const editBtn = block.querySelector(".section-title button[id*='headerEditToggleBtn']");
+      if(editBtn){
+        editBtn.onclick=function(){
+          const titleEl=block.querySelector(".section-title span");
+          const currentTitle=(titleEl?.textContent||"📋 Data Summary").trim();
+          const newTitle=prompt("Judul tabel:",currentTitle);
+          if(newTitle!==null && newTitle.trim()){
+            titleEl.textContent=newTitle.trim();
+          }
+          const hs=Array.from(table.querySelectorAll("thead th"));
+          hs.forEach((th,i)=>{
+            if(i===0 || i===hs.length-1) return;
+            const old=(th.textContent||"").trim();
+            const val=prompt("Header kolom:",old);
+            if(val!==null && val.trim()) th.textContent=val.trim();
+            th.style.whiteSpace="normal";
+            th.style.wordBreak="break-word";
+            th.style.overflowWrap="anywhere";
+          });
+        };
+      }
+    }
+
+    // The duplicate button always creates another completely separate block.
+    block.querySelectorAll("button").forEach(btn=>{
+      if((btn.textContent||"").includes("Duplikat All")){
+        btn.onclick=function(){ duplicateBlock(block); };
+      }
+    });
+  }
+
+  function duplicateBlock(source){
+    if(!source) return;
+    const clone=source.cloneNode(true);
+    clone.classList.add("is-duplicate");
+
+    // Make the cloned block independent of duplicate IDs.
+    clone.querySelectorAll("[id]").forEach(el=>{
+      el.removeAttribute("id");
+    });
+
+    // Remove stale open panels.
+    clone.querySelectorAll(".colpanel").forEach(p=>p.classList.add("hidden"));
+    clone.querySelectorAll(".colpick-groups").forEach(g=>g.innerHTML="");
+    clone.querySelectorAll(".pager").forEach(p=>p.style.display="none");
+
+    source.parentNode.insertBefore(clone,source.nextSibling);
+    setupBlock(clone,true);
+    return clone;
+  }
+
+  function initializeStandaloneBlock(){
+    const title=document.querySelector(".main > .section-title");
+    if(!title) return;
+
+    // The original table area consists of:
+    // section-title + columnPanel + colorPanel + table-wrap + pager.
+    const nodes=[title];
+    let n=title.nextElementSibling;
+    while(n && !n.matches(".hero,.summary, .modal-overlay")){
+      nodes.push(n);
+      if(n.classList.contains("pager")) break;
+      n=n.nextElementSibling;
+    }
+
+    if(nodes.length<4) return;
+
+    const block=document.createElement("section");
+    block.className="summary-table-block";
+    nodes[0].parentNode.insertBefore(block,nodes[0]);
+    nodes.forEach(x=>block.appendChild(x));
+
+    // Use the first block as the master.
+    setupBlock(block,false);
+
+    // Existing generated table toolbar contains the duplicate button.
+    block.querySelectorAll("button").forEach(btn=>{
+      if((btn.textContent||"").includes("Duplikat All")){
+        btn.onclick=function(){ duplicateBlock(block); };
+      }
+    });
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",()=>setTimeout(initializeStandaloneBlock,50));
+  }else{
+    setTimeout(initializeStandaloneBlock,50);
+  }
+})();
+</script>
+
 </body>
 </html>
