@@ -82,6 +82,15 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
 @media(max-width:900px){.sidebar{width:210px}.main{margin-left:210px;padding:14px}.filters input{min-width:180px}.form-grid{grid-template-columns:repeat(2,1fr)}.form-grid.months{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:650px){.sidebar{position:static;width:100%;height:auto}.app-shell{display:block}.sidebar-bottom{position:static;margin-top:15px}.main{margin-left:0}.form-grid{grid-template-columns:1fr}.form-grid.months{grid-template-columns:repeat(2,1fr)}.full{grid-column:auto}.hero h1{font-size:19px}}
 </style>
+
+<style id="default-column-width-75px">
+/* Default lebar kolom: 75px */
+.table-instance table th,
+.table-instance table td {
+  min-width: 75px;
+}
+</style>
+
 </head>
 <body>
 <div class="app-shell">
@@ -1443,7 +1452,7 @@ function money(v){return "Rp "+Number(v||0).toLocaleString("id-ID",{maximumFract
 
     const dup=document.createElement("button");
     dup.type="button";
-    dup.textContent="⧉ Duplikat Tabel";
+    dup.textContent="⧉ Duplikat All";
     dup.onclick=()=>duplicateInstance(instance);
 
     const del=document.createElement("button");
@@ -1504,7 +1513,7 @@ function money(v){return "Rp "+Number(v||0).toLocaleString("id-ID",{maximumFract
     pickerWrap.append(pickBtn,picker);
 
     const dup=document.createElement("button");
-    dup.type="button"; dup.textContent="⧉ Duplikat Tabel";
+    dup.type="button"; dup.textContent="⧉ Duplikat All";
     dup.onclick=()=>duplicateInstance(wrapper);
 
     toolbar.append(pickerWrap,dup);
@@ -1516,6 +1525,105 @@ function money(v){return "Rp "+Number(v||0).toLocaleString("id-ID",{maximumFract
     document.addEventListener("DOMContentLoaded",initialize);
   }else{
     initialize();
+  }
+})();
+</script>
+
+
+<script>
+(function(){
+  "use strict";
+
+  // "Duplikat All" duplicates the complete SUMMARY block, not only the HTML table.
+  // It preserves the current DOM state/configuration of the source block and
+  // creates an independent copy underneath it.
+  window.__duplicateAllSummary = function(sourceInstance){
+    if(!sourceInstance) return;
+
+    const clone = sourceInstance.cloneNode(true);
+    clone.classList.add("is-clone");
+
+    // Remove any open dropdown state from the copy.
+    clone.querySelectorAll(".column-picker.show").forEach(el => el.classList.remove("show"));
+
+    // Give the cloned controls fresh event handlers.
+    const oldButtons = clone.querySelectorAll("button");
+    oldButtons.forEach(btn => {
+      const text = (btn.textContent || "").trim();
+
+      if(text.includes("Duplikat All")){
+        btn.onclick = function(){
+          window.__duplicateAllSummary(clone);
+        };
+      } else if(text.includes("Hapus")){
+        btn.onclick = function(){
+          if(document.querySelectorAll(".table-instance").length > 1){
+            clone.remove();
+          }
+        };
+      } else if(text.includes("Pilih Kolom")){
+        btn.onclick = function(){
+          const picker = btn.parentElement.querySelector(".column-picker");
+          if(picker) picker.classList.toggle("show");
+        };
+      }
+    });
+
+    // Rebind column checkboxes in the clone.
+    clone.querySelectorAll(".column-picker input[type=checkbox]").forEach(cb => {
+      cb.addEventListener("change", function(){
+        const picker = cb.closest(".column-picker");
+        const values = Array.from(picker.querySelectorAll("input:checked"))
+          .map(x => x.dataset.columnKey);
+
+        if(!values.length){
+          cb.checked = true;
+          return;
+        }
+
+        const table = clone.querySelector("table");
+        if(!table) return;
+
+        const headers = Array.from(
+          (table.tHead && table.tHead.rows[0]) || table.querySelector("tr")?.cells || []
+        );
+
+        Array.from(table.rows).forEach(row => {
+          Array.from(row.cells).forEach((cell,i) => {
+            const header = headers[i];
+            const key = header
+              ? (header.textContent || "").trim().replace(/\s+/g," ") || ("COL_"+(i+1))
+              : ("COL_"+(i+1));
+            cell.style.display = values.includes(key) ? "" : "none";
+          });
+        });
+
+        clone.dataset.selectedColumns = JSON.stringify(values);
+      });
+    });
+
+    sourceInstance.parentNode.insertBefore(clone, sourceInstance.nextSibling);
+    return clone;
+  };
+
+  // Upgrade existing "Duplikat All" buttons to duplicate the entire summary
+  // block rather than just cloning the table.
+  function bindDuplicateAll(){
+    document.querySelectorAll(".table-instance").forEach(instance => {
+      instance.querySelectorAll("button").forEach(btn => {
+        if((btn.textContent || "").trim().includes("Duplikat All")){
+          btn.onclick = function(){
+            window.__duplicateAllSummary(instance);
+          };
+        }
+      });
+    });
+  }
+
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", bindDuplicateAll);
+  } else {
+    bindDuplicateAll();
   }
 })();
 </script>
