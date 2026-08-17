@@ -170,7 +170,7 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
          panel pilih kolom; setiap kolom punya tombol 🎨 untuk membuka
          modal Format (sama dgn format baris) dan tombol ✕ untuk reset
          cepat. Format kolom disimpan di colStyles (localStorage) dan
-         MENANG dibanding format baris kalau bentrok di sel yang sama.
+         Jika warna custom kolom dan baris bertemu pada sel yang sama, FORMAT BARIS menjadi prioritas utama.
          ============================================================ -->
     <section id="colorPanel" class="colpanel hidden">
       <div class="colpanel-toolbar">
@@ -686,18 +686,18 @@ function renderTable(){
       const cls = ["td"];
       if(f.key==="Anggaran UNIT") cls.push("left");
       if(!visibleCols.has(f.key)) cls.push("col-hidden");
-      // Gabungkan format baris (st) dengan format kolom (colSt) — kolom MENANG kalau bentrok,
-      // dan kalau dua-duanya sama-sama mengatur properti yang sama, warna kolom dipakai
-      // dalam versi lebih GELAP supaya kelihatan ada tumpang-tindih.
+      // Gabungkan format BARIS (st) dengan format KOLOM (colSt).
+      // PRIORITAS WARNA: BARIS terlebih dahulu.
+      // Jika warna custom baris dan kolom sama-sama aktif pada sel yang sama,
+      // warna custom BARIS tetap dipakai. Format kolom hanya dipakai bila
+      // baris tidak memiliki warna custom tersebut.
       const colSt = colStyles[f.key] || {};
-      const bgConflict = colSt.bg !== undefined && st.bg !== undefined;
-      const colorConflict = colSt.color !== undefined && st.color !== undefined;
       const merged = {
-        bg: colSt.bg !== undefined ? (bgConflict ? darkenHex(colSt.bg) : colSt.bg) : st.bg,
-        color: colSt.color !== undefined ? (colorConflict ? darkenHex(colSt.color) : colSt.color) : st.color,
-        size: colSt.size !== undefined ? colSt.size : st.size,
-        bold: colSt.bold !== undefined ? colSt.bold : st.bold,
-        align: colSt.align !== undefined ? colSt.align : st.align,
+        bg: st.bg !== undefined ? st.bg : colSt.bg,
+        color: st.color !== undefined ? st.color : colSt.color,
+        size: st.size !== undefined ? st.size : colSt.size,
+        bold: st.bold !== undefined ? st.bold : colSt.bold,
+        align: st.align !== undefined ? st.align : colSt.align,
         wrap: colSt.wrap
       };
       const cellParts = [];
@@ -747,8 +747,8 @@ function changePage(delta){
 //     disimpan di colStyles (localStorage: icms_summary_col_styles).
 //   - Format header kolom: tombol 📝 di panel "Atur Warna Kolom",
 //     disimpan di colHeaderStyles (localStorage: icms_summary_col_header_styles).
-// Kalau format baris & kolom bentrok di sel yang sama, KOLOM MENANG
-// (lihat penggabungan "merged" di dalam renderTable()).
+// Kalau format baris & kolom bentrok di sel yang sama, BARIS MENANG
+// untuk warna (background & text). Format kolom menjadi fallback.
 // ============================================================
 function openFormat(id){
   document.getElementById("fmt_type").value = "row";
