@@ -42,7 +42,7 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-ser
 #alert{margin-top:8px;font-size:11px;white-space:pre-wrap}
 .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:12px 0}.card{background:#fff;border:1px solid var(--border);border-radius:11px;padding:13px 15px;box-shadow:0 2px 8px rgba(0,116,116,.08)}.label{font-size:11px;color:var(--muted)}.value{font-size:21px;font-weight:700;color:var(--dark);margin-top:2px}
 .section-title{font-size:15px;font-weight:700;color:var(--dark);border-left:4px solid var(--accent);padding-left:10px;margin:18px 0 8px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.table-wrap{border:1px solid var(--border);border-radius:10px;overflow:auto;max-height:620px;background:#fff;box-shadow:0 2px 8px rgba(0,116,116,.07)}table{border-collapse:collapse;width:max-content;min-width:100%}th,td{border:1px solid #b2d8d0;padding:4px 7px;text-align:center;font-size:10.5px;white-space:nowrap}th{background:var(--mid);color:#fff;position:sticky;top:0;z-index:2;font-weight:600}tr:nth-child(even) td{background:#f0faf8}tr:hover td{filter:brightness(0.97)}.left{text-align:left}
+.table-wrap{border:1px solid var(--border);border-radius:10px;overflow:auto;max-height:620px;background:#fff;box-shadow:0 2px 8px rgba(0,116,116,.07)}table{border-collapse:collapse;width:max-content;min-width:0}th,td{border:1px solid #b2d8d0;padding:4px 7px;text-align:center;font-size:10.5px;white-space:nowrap}th{background:var(--mid);color:#fff;position:sticky;top:0;z-index:2;font-weight:600}tr:nth-child(even) td{background:#f0faf8}tr:hover td{filter:brightness(0.97)}.left{text-align:left}
 th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.sticky-col{z-index:3;background:var(--mid)}
 .col-hidden{display:none!important}
 .pager{display:flex;justify-content:space-between;align-items:center;margin:8px 0;font-size:11px;color:var(--muted)}
@@ -765,7 +765,7 @@ function renderTable(){
       if(merged.align) cellParts.push(`text-align:${merged.align}`);
       if(merged.wrap) cellParts.push(`white-space:normal;word-break:break-word`);
       if(st.height) cellParts.push(`height:${st.height}px`);
-      if(colSt.width) cellParts.push(`width:${colSt.width}px;min-width:${colSt.width}px;max-width:${colSt.width}px;overflow:hidden;text-overflow:ellipsis`);
+      if(colSt.width) cellParts.push(`width:${colSt.width}px;min-width:${colSt.width}px;max-width:${colSt.width}px;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box`);
       const cellStyleAttr = cellParts.length ? ` style="${escapeAttr(cellParts.join(";"))}"` : "";
       return `<td data-col="${escapeAttr(f.key)}" class="${cls.join(" ")}"${cellStyleAttr}>${v}</td>`;
     }).join("");
