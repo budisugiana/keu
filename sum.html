@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+(function(){
+  const q=new URLSearchParams(location.search);
+  if(q.has("table")) document.documentElement.classList.add("embedded-page");
+})();
+</script>
 <title>Summary — ICMS</title>
 <script>
 (function(){
@@ -30,6 +36,10 @@
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(135deg,var(--bg),var(--bg2));color:var(--text)}
+.embedded-page .sidebar{display:none!important}
+.embedded-page .main{margin-left:0!important;width:100%!important}
+.embedded-page .content{padding:18px!important}
+
 .app-shell{display:flex;min-height:100vh}
 .sidebar{position:fixed;left:0;top:0;bottom:0;width:260px;background:linear-gradient(180deg,#0b3c55,#17688a);color:#fff;padding:20px 16px;box-shadow:2px 0 12px rgba(0,0,0,.15);z-index:50}
 .brand{display:flex;gap:11px;align-items:center;margin-bottom:18px}.brand-mark{width:42px;height:42px;border-radius:10px;background:#007474;display:grid;place-items:center;font-weight:800}.brand-title{font-size:18px;font-weight:800}.brand-subtitle{font-size:10px;opacity:.75}
@@ -396,7 +406,11 @@ table th {
 // ============================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbyJoZ2eU7rcPjoiQDERgrwAu2_wSL-AQ9wP46-7neFspaXYIVHDyD4F1p6q4XCBWVMx/exec";
 const API_KEY = "2026-BNU-KARTUKONTROL";
-const SHEET_NAME = "summary";
+const TABLE_NO = Math.max(1, Math.min(5, Number(new URLSearchParams(location.search).get("table") || 1)));
+const IS_HOST = !new URLSearchParams(location.search).has("table");
+const IS_EMBEDDED = new URLSearchParams(location.search).get("embedded") === "1";
+const SHEET_NAME = "summary_" + TABLE_NO;
+const STORAGE_PREFIX = "icms_summary_t" + TABLE_NO + "_";
 // ============================================================
 
 const PAGE_SIZE = 30;
@@ -458,9 +472,9 @@ const GROUPS = ["Ringkasan Anggaran", ...MONTH_BLOCKS.map(b=>b.group)];
 // STATE: kolom mana yang ditampilkan & warna baris — disimpan di
 // localStorage supaya preferensi tetap ada walau halaman dimuat ulang.
 // ------------------------------------------------------------
-const VISIBLE_COLS_KEY = "icms_summary_visible_cols";
-const ROW_STYLES_KEY = "icms_summary_row_styles";
-const ROW_COLORS_KEY_LEGACY = "icms_summary_row_colors"; // key lama (sebelum fitur format lengkap)
+const VISIBLE_COLS_KEY = STORAGE_PREFIX + "visible_cols";
+const ROW_STYLES_KEY = STORAGE_PREFIX + "row_styles";
+const ROW_COLORS_KEY_LEGACY = STORAGE_PREFIX + "row_colors"; // key lama (sebelum fitur format lengkap)
 
 function loadVisibleCols(){
   try{
@@ -492,7 +506,7 @@ function loadRowStyles(){
 function saveRowStyles(obj){
   localStorage.setItem(ROW_STYLES_KEY, JSON.stringify(obj));
 }
-const COL_STYLES_KEY = "icms_summary_col_styles";
+const COL_STYLES_KEY = STORAGE_PREFIX + "col_styles";
 function loadColStyles(){
   try{
     const raw = localStorage.getItem(COL_STYLES_KEY);
@@ -502,7 +516,7 @@ function loadColStyles(){
 function saveColStyles(obj){
   localStorage.setItem(COL_STYLES_KEY, JSON.stringify(obj));
 }
-const COL_HEADER_STYLES_KEY = "icms_summary_col_header_styles";
+const COL_HEADER_STYLES_KEY = STORAGE_PREFIX + "col_header_styles";
 function loadColHeaderStyles(){
   try{
     const raw = localStorage.getItem(COL_HEADER_STYLES_KEY);
@@ -512,8 +526,8 @@ function loadColHeaderStyles(){
 function saveColHeaderStyles(obj){
   localStorage.setItem(COL_HEADER_STYLES_KEY, JSON.stringify(obj));
 }
-const TABLE_TITLE_KEY = "icms_summary_table_title";
-const DEFAULT_TABLE_TITLE = "📋 Data Summary";
+const TABLE_TITLE_KEY = STORAGE_PREFIX + "table_title";
+const DEFAULT_TABLE_TITLE = "📋 Data Summary — Tabel " + TABLE_NO;
 function loadTableTitle(){
   try{
     const raw = localStorage.getItem(TABLE_TITLE_KEY);
@@ -532,6 +546,7 @@ let tableTitle = loadTableTitle();
 const rowDataMap = new Map(); // lookup id->row saat ini di halaman, dipakai oleh event delegation tombol Aksi
 
 document.addEventListener("DOMContentLoaded", ()=>{
+  if(IS_HOST) return;
   initAuthUI(); buildForm(); buildTableHead(); initColumnPicker(); initColorPicker(); applyTableTitle(); loadData();
   // Event delegation untuk tombol Aksi (🎨/✏️/🗑️) di tiap baris — dipasang SEKALI di tbody,
   // bukan inline onclick per baris, supaya karakter aneh (kutip, dsb) di data tidak pernah
@@ -1358,352 +1373,48 @@ function num(v,d=0){return Number(v||0).toLocaleString("id-ID",{minimumFractionD
 function money(v){return "Rp "+Number(v||0).toLocaleString("id-ID",{maximumFractionDigits:0})}
 </script>
 
-<style>
-  /* Multi-table controls */
-  .multi-table-toolbar{
-    display:flex;gap:8px;align-items:center;flex-wrap:wrap;
-    margin:10px 0 14px;
-  }
-  .multi-table-toolbar button,
-  .table-instance-toolbar button{
-    border:1px solid #cbd5e1;background:#fff;color:#334155;
-    border-radius:7px;padding:7px 11px;cursor:pointer;font-size:12px;
-  }
-  .multi-table-toolbar button:hover,
-  .table-instance-toolbar button:hover{background:#f1f5f9}
-  .table-instance{margin-bottom:22px}
-  .table-instance.is-clone{border-top:1px solid #e2e8f0;padding-top:16px}
-  .table-instance-toolbar{
-    display:flex;justify-content:flex-end;gap:7px;margin-bottom:7px;
-  }
-  .column-picker{
-    display:none;position:absolute;right:0;top:38px;z-index:1000;
-    background:#fff;border:1px solid #cbd5e1;border-radius:8px;
-    box-shadow:0 8px 24px rgba(15,23,42,.12);padding:10px;min-width:240px;
-    max-height:360px;overflow:auto;
-  }
-  .column-picker.show{display:block}
-  .column-picker label{display:flex;gap:7px;align-items:center;padding:5px 3px;font-size:12px}
-  .column-picker-wrap{position:relative}
-  .table-instance .summary-table,
-  .table-instance table{width:100%}
-  .table-instance [data-column-key].is-column-hidden{display:none!important}
+<style id="five-table-host-style">
+  html.host-page, html.host-page body{margin:0;min-height:100%;background:#eef6f8}
+  .five-host{min-height:100vh;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#16343d}
+  .five-head{position:sticky;top:0;z-index:20;background:linear-gradient(135deg,#0b3c55,#17688a);color:#fff;padding:18px 22px;box-shadow:0 3px 14px rgba(0,0,0,.15)}
+  .five-title{font-size:20px;font-weight:800}.five-sub{font-size:11px;opacity:.82;margin-top:3px}
+  .five-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+  .five-tab{border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.10);color:#fff;border-radius:8px;padding:9px 15px;cursor:pointer;font-size:12px;font-weight:700}
+  .five-tab.active{background:#fff;color:#0b3c55}
+  .five-body{padding:12px;background:#eef6f8}
+  .five-frame{display:none;width:100%;height:calc(100vh - 142px);min-height:720px;border:0;border-radius:10px;background:#fff;box-shadow:0 3px 16px rgba(15,50,65,.10)}
+  .five-frame.active{display:block}
 </style>
-
 <script>
 (function(){
   "use strict";
-
-  const STATE_KEY = "__summary_multi_table_state_v1";
-
-  function getTable(){
-    return document.querySelector("table");
+  const q=new URLSearchParams(location.search);
+  const host=!q.has("table");
+  if(!host) return;
+  document.documentElement.classList.add("host-page");
+  function initHost(){
+    document.body.innerHTML='';
+    const root=document.createElement('div'); root.className='five-host';
+    root.innerHTML=`<header class="five-head">
+      <div class="five-title">📊 MONITORING ANGGARAN — 5 TABEL INDEPENDEN</div>
+      <div class="five-sub">Setiap tabel memiliki data, tampilan kolom, header, warna, lebar kolom, dan preferensi sendiri.</div>
+      <div class="five-tabs" id="fiveTabs"></div>
+    </header><main class="five-body" id="fiveBody"></main>`;
+    document.body.appendChild(root);
+    const tabs=document.getElementById('fiveTabs'), body=document.getElementById('fiveBody');
+    for(let i=1;i<=5;i++){
+      const tab=document.createElement('button'); tab.className='five-tab'+(i===1?' active':''); tab.textContent='Tabel '+i;
+      tab.onclick=()=>activate(i); tabs.appendChild(tab);
+      const frame=document.createElement('iframe'); frame.className='five-frame'+(i===1?' active':'');
+      frame.src=location.pathname+'?table='+i+'&embedded=1'; frame.title='Tabel '+i; frame.loading=i===1?'eager':'lazy'; frame.dataset.table=i;
+      body.appendChild(frame);
+    }
+    function activate(n){
+      tabs.querySelectorAll('.five-tab').forEach((b,i)=>b.classList.toggle('active',i===n-1));
+      body.querySelectorAll('.five-frame').forEach((f,i)=>f.classList.toggle('active',i===n-1));
+    }
   }
-
-  function getHeaderCells(table){
-    if(!table) return [];
-    const row = table.tHead ? table.tHead.rows[0] : table.querySelector("tr");
-    return row ? Array.from(row.cells) : [];
-  }
-
-  function keyForHeader(cell, i){
-    const text = (cell.textContent || "").trim().replace(/\\s+/g," ");
-    return text || ("COL_"+(i+1));
-  }
-
-  function getAllColumns(table){
-    return getHeaderCells(table).map((c,i)=>({
-      index:i,
-      key:keyForHeader(c,i),
-      label:(c.textContent||"").trim() || ("Kolom "+(i+1))
-    }));
-  }
-
-  function applyColumns(instance, selected){
-    const table = instance.querySelector("table");
-    if(!table) return;
-    const headers = getHeaderCells(table);
-    const allowed = new Set(selected);
-
-    [headers, ...Array.from(table.tBodies).map(tb=>Array.from(tb.rows).flatMap(r=>Array.from(r.cells)))]
-      .flat();
-
-    const rows = Array.from(table.rows);
-    rows.forEach(row=>{
-      Array.from(row.cells).forEach((cell,i)=>{
-        const key = keyForHeader(headers[i],i);
-        cell.style.display = allowed.has(key) ? "" : "none";
-      });
-    });
-  }
-
-  function openPicker(instance){
-    const picker = instance.querySelector(".column-picker");
-    if(picker) picker.classList.toggle("show");
-  }
-
-  function buildPicker(instance, columns, selected){
-    const picker = instance.querySelector(".column-picker");
-    if(!picker) return;
-    picker.innerHTML = "";
-
-    columns.forEach(col=>{
-      const label=document.createElement("label");
-      const cb=document.createElement("input");
-      cb.type="checkbox";
-      cb.checked=selected.includes(col.key);
-      cb.dataset.columnKey=col.key;
-      cb.addEventListener("change",()=>{
-        const values=Array.from(picker.querySelectorAll("input:checked")).map(x=>x.dataset.columnKey);
-        if(!values.length){ cb.checked=true; return; }
-        applyColumns(instance,values);
-        instance.dataset.selectedColumns=JSON.stringify(values);
-      });
-      label.append(cb,document.createTextNode(col.label));
-      picker.appendChild(label);
-    });
-  }
-
-  function makeInstance(source, isClone){
-    const instance=document.createElement("section");
-    instance.className="table-instance"+(isClone?" is-clone":"");
-    instance.dataset.selectedColumns="[]";
-
-    const toolbar=document.createElement("div");
-    toolbar.className="table-instance-toolbar";
-
-    const pickerWrap=document.createElement("div");
-    pickerWrap.className="column-picker-wrap";
-
-    const pickBtn=document.createElement("button");
-    pickBtn.type="button";
-    pickBtn.textContent="⚙ Pilih Kolom";
-    pickBtn.onclick=()=>openPicker(instance);
-
-    const picker=document.createElement("div");
-    picker.className="column-picker";
-
-    const dup=document.createElement("button");
-    dup.type="button";
-    dup.textContent="⧉ Duplikat All";
-    dup.onclick=()=>duplicateInstance(instance);
-
-    const del=document.createElement("button");
-    del.type="button";
-    del.textContent="🗑 Hapus";
-    del.onclick=()=>{
-      if(document.querySelectorAll(".table-instance").length>1) instance.remove();
-    };
-
-    pickerWrap.append(pickBtn,picker);
-    toolbar.append(pickerWrap,dup);
-    if(isClone) toolbar.append(del);
-    instance.append(toolbar,source);
-    return instance;
-  }
-
-  function duplicateInstance(instance){
-    const table=instance.querySelector("table");
-    if(!table) return;
-
-    const cloneTable=table.cloneNode(true);
-    const clone=makeInstance(cloneTable,true);
-
-    const columns=getAllColumns(cloneTable);
-    const selected=JSON.parse(instance.dataset.selectedColumns||"[]");
-    const actualSelected=selected.length ? selected : columns.map(x=>x.key);
-
-    clone.dataset.selectedColumns=JSON.stringify(actualSelected);
-    buildPicker(clone,columns,actualSelected);
-    applyColumns(clone,actualSelected);
-
-    instance.parentNode.insertBefore(clone,instance.nextSibling);
-  }
-
-  function initialize(){
-    const table=getTable();
-    if(!table || table.closest(".table-instance")) return;
-
-    // Preserve the existing table's surrounding DOM by moving only the table.
-    const parent=table.parentNode;
-    const wrapper=document.createElement("div");
-    wrapper.className="table-instance";
-    parent.insertBefore(wrapper,table);
-    wrapper.appendChild(table);
-
-    const columns=getAllColumns(table);
-    const selected=columns.map(x=>x.key);
-    wrapper.dataset.selectedColumns=JSON.stringify(selected);
-
-    const toolbar=document.createElement("div");
-    toolbar.className="table-instance-toolbar";
-    const pickerWrap=document.createElement("div");
-    pickerWrap.className="column-picker-wrap";
-    const pickBtn=document.createElement("button");
-    pickBtn.type="button"; pickBtn.textContent="⚙ Pilih Kolom";
-    const picker=document.createElement("div"); picker.className="column-picker";
-    pickBtn.onclick=()=>picker.classList.toggle("show");
-    pickerWrap.append(pickBtn,picker);
-
-    const dup=document.createElement("button");
-    dup.type="button"; dup.textContent="⧉ Duplikat All";
-    dup.onclick=()=>duplicateInstance(wrapper);
-
-    toolbar.append(pickerWrap,dup);
-    wrapper.insertBefore(toolbar,table);
-    buildPicker(wrapper,columns,selected);
-  }
-
-  if(document.readyState==="loading"){
-    document.addEventListener("DOMContentLoaded",initialize);
-  }else{
-    initialize();
-  }
-})();
-</script>
-
-
-<script>
-(function(){
-  "use strict";
-
-  // "Duplikat All" duplicates the complete SUMMARY block, not only the HTML table.
-  // It preserves the current DOM state/configuration of the source block and
-  // creates an independent copy underneath it.
-  window.__duplicateAllSummary = function(sourceInstance){
-    if(!sourceInstance) return;
-
-    const clone = sourceInstance.cloneNode(true);
-    clone.classList.add("is-clone");
-
-    // Remove any open dropdown state from the copy.
-    clone.querySelectorAll(".column-picker.show").forEach(el => el.classList.remove("show"));
-
-    // Give the cloned controls fresh event handlers.
-    const oldButtons = clone.querySelectorAll("button");
-    oldButtons.forEach(btn => {
-      const text = (btn.textContent || "").trim();
-
-      if(text.includes("Duplikat All")){
-        btn.onclick = function(){
-          window.__duplicateAllSummary(clone);
-        };
-      } else if(text.includes("Hapus")){
-        btn.onclick = function(){
-          if(document.querySelectorAll(".table-instance").length > 1){
-            clone.remove();
-          }
-        };
-      } else if(text.includes("Pilih Kolom")){
-        btn.onclick = function(){
-          const picker = btn.parentElement.querySelector(".column-picker");
-          if(picker) picker.classList.toggle("show");
-        };
-      }
-    });
-
-    // Rebind column checkboxes in the clone.
-    clone.querySelectorAll(".column-picker input[type=checkbox]").forEach(cb => {
-      cb.addEventListener("change", function(){
-        const picker = cb.closest(".column-picker");
-        const values = Array.from(picker.querySelectorAll("input:checked"))
-          .map(x => x.dataset.columnKey);
-
-        if(!values.length){
-          cb.checked = true;
-          return;
-        }
-
-        const table = clone.querySelector("table");
-        if(!table) return;
-
-        const headers = Array.from(
-          (table.tHead && table.tHead.rows[0]) || table.querySelector("tr")?.cells || []
-        );
-
-        Array.from(table.rows).forEach(row => {
-          Array.from(row.cells).forEach((cell,i) => {
-            const header = headers[i];
-            const key = header
-              ? (header.textContent || "").trim().replace(/\s+/g," ") || ("COL_"+(i+1))
-              : ("COL_"+(i+1));
-            cell.style.display = values.includes(key) ? "" : "none";
-          });
-        });
-
-        clone.dataset.selectedColumns = JSON.stringify(values);
-      });
-    });
-
-    sourceInstance.parentNode.insertBefore(clone, sourceInstance.nextSibling);
-    return clone;
-  };
-
-  // Upgrade existing "Duplikat All" buttons to duplicate the entire summary
-  // block rather than just cloning the table.
-  function bindDuplicateAll(){
-    document.querySelectorAll(".table-instance").forEach(instance => {
-      instance.querySelectorAll("button").forEach(btn => {
-        if((btn.textContent || "").trim().includes("Duplikat All")){
-          btn.onclick = function(){
-            window.__duplicateAllSummary(instance);
-          };
-        }
-      });
-    });
-  }
-
-  if(document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded", bindDuplicateAll);
-  } else {
-    bindDuplicateAll();
-  }
-})();
-</script>
-
-
-<script id="default-column-width-settings">
-(function(){
-  function initDefaultColumnWidth(){
-    // Detect by nearby label/text, so this works even if IDs differ.
-    document.querySelectorAll('input[type="checkbox"]').forEach(function(cb){
-      var parent = cb.closest('label, .form-group, .setting-item, .control-group, div');
-      var text = parent ? (parent.innerText || '') : '';
-      if (/aktifkan\s+lebar\s+kolom\s+custom/i.test(text) ||
-          /custom\s+(column\s+)?width/i.test(text)) {
-        cb.checked = true;
-        cb.dispatchEvent(new Event('change', {bubbles:true}));
-      }
-    });
-
-    // Set width inputs connected to "Lebar Kolom" to 75 by default.
-    document.querySelectorAll('input').forEach(function(input){
-      var parent = input.closest('label, .form-group, .setting-item, .control-group, div');
-      var text = parent ? (parent.innerText || '') : '';
-      var hint = ((input.id||'')+' '+(input.name||'')+' '+(input.placeholder||'')).toLowerCase();
-
-      if (/lebar\s+kolom|column\s+width|custom\s+width/.test(text.toLowerCase()) ||
-          /columnwidth|customwidth|column-width/.test(hint)) {
-        if (!input.value || input.value === 'auto' || input.value === '0' || input.value === '100') {
-          input.value = '75';
-          input.dispatchEvent(new Event('input', {bubbles:true}));
-          input.dispatchEvent(new Event('change', {bubbles:true}));
-        }
-      }
-    });
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', initDefaultColumnWidth);
-  }else{
-    initDefaultColumnWidth();
-  }
-
-  // Re-apply after dynamically generated edit panels appear.
-  var observer = new MutationObserver(function(){
-    initDefaultColumnWidth();
-  });
-  observer.observe(document.documentElement, {childList:true, subtree:true});
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initHost); else initHost();
 })();
 </script>
 
