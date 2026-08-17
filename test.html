@@ -22,6 +22,7 @@
 </script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 
 <style>
 :root{
@@ -100,6 +101,18 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
 @media(max-width:650px){.sidebar{position:static;width:100%;height:auto}.app-shell{display:block}.sidebar-bottom{position:static;margin-top:15px}.main{margin-left:0}.form-grid{grid-template-columns:1fr}.form-grid.months{grid-template-columns:repeat(2,1fr)}.full{grid-column:auto}.hero h1{font-size:19px}.packet-header{flex-direction:column;align-items:flex-start}}
 
 table th, table td{min-width:75px}
+th[data-col]{cursor:grab}
+th[data-col].dragging-col{opacity:.4}
+th[data-col].col-drag-over{outline:2px dashed #FF8A3D;outline-offset:-2px}
+
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;margin:14px 0 6px}
+.chart-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:13px 14px;box-shadow:0 2px 8px rgba(0,116,116,.08);display:flex;flex-direction:column}
+.chart-card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+.chart-card-title{font-weight:700;color:var(--dark);font-size:13px;line-height:1.3}
+.chart-card-sub{font-size:9.5px;color:var(--muted);margin-top:2px}
+.chart-card-actions{display:flex;gap:5px;flex-shrink:0}
+.chart-canvas-wrap{position:relative;height:260px}
+.chart-empty-state{border:1.5px dashed var(--border);border-radius:12px;padding:30px 14px;text-align:center;color:var(--muted);font-size:12px;background:#f7fdfc}
 #dataAddModal .no-col{width:45px!important;min-width:45px!important;max-width:45px!important}
 [id^="dataTable_"] th.no-col,[id^="dataTable_"] td.no-col{width:45px!important;min-width:45px!important;max-width:45px!important;text-align:center;white-space:nowrap!important}
 [id^="dataTable_"] th.action-col,[id^="dataTable_"] td.action-col{width:105px!important;min-width:105px!important;max-width:105px!important;text-align:center;white-space:nowrap!important}
@@ -166,6 +179,14 @@ table thead th, table th{white-space:normal!important;overflow-wrap:anywhere;wor
       <div class="card"><div class="label">Total Proyeksi Next Month</div><div class="value" id="sumProyeksi">Rp 0</div></div>
     </section>
 
+    <div class="section-title">
+      <span>📈 Grafik</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn primary" onclick="openChartModal()">➕ Tambah Grafik</button>
+      </div>
+    </div>
+    <div id="chartsContainer"></div>
+
     <!-- ============================================================
          5 PAKET TABEL dirender otomatis oleh JS ke dalam container ini.
          Setiap paket = 1 kartu (judul + tombol Pilih Kolom / Atur Warna
@@ -173,6 +194,12 @@ table thead th, table th{white-space:normal!important;overflow-wrap:anywhere;wor
          membaca dari allData yang sama, tapi state kolom/warna/judul
          disimpan terpisah per paket (lihat PACKET_CONFIGS di script).
          ============================================================ -->
+    <div class="section-title" style="margin-top:22px">
+      <span>📋 Paket Tabel Data</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn primary" onclick="openAddTableModal()">➕ Tambah Tabel</button>
+      </div>
+    </div>
     <div id="packetsContainer"></div>
   </main>
 </div>
@@ -294,6 +321,89 @@ table thead th, table th{white-space:normal!important;overflow-wrap:anywhere;wor
   </div>
 </div>
 
+<!-- Modal Tambah Tabel Baru — membuat kartu paket tabel baru dari sheet yang sama -->
+<div id="addTableModal" class="modal-overlay hidden">
+  <div class="modal-box" style="width:min(560px,96vw)">
+    <div class="modal-title">➕ Tambah Tabel Baru</div>
+    <div class="form-section">
+      <div class="form-section-title">Judul Tabel</div>
+      <div class="fmt-row">
+        <input type="text" id="newTable_title" placeholder="cth: Analisis Khusus Divisi X" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%">
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Kolom Awal yang Ditampilkan</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Pilih grup kolom yang ingin ditampilkan pertama kali. Bisa diubah/ditambah lagi kapan saja lewat "Pilih Kolom yang Ditampilkan" pada tabel setelah dibuat. Kosongkan semua = tampilkan semua kolom.</div>
+      <div class="colpanel-toolbar">
+        <button class="miniBtn" type="button" onclick="toggleAllNewTableGroups(true)">Pilih Semua Grup</button>
+        <button class="miniBtn" type="button" onclick="toggleAllNewTableGroups(false)">Kosongkan</button>
+      </div>
+      <div class="colpick-groups" id="newTableGroups" style="max-height:260px"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn primary" type="button" onclick="saveAddTableModal()">💾 Buat Tabel</button>
+      <button class="btn gray" type="button" onclick="closeAddTableModal()">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Buat/Edit Grafik — data grafik selalu mengikuti filteredData (data + filter global saat ini) -->
+<div id="chartModal" class="modal-overlay hidden">
+  <div class="modal-box" style="width:min(640px,96vw)">
+    <div class="modal-title" id="chartModalTitle">📈 Tambah Grafik</div>
+    <input type="hidden" id="chart_id">
+
+    <div class="form-section">
+      <div class="form-section-title">Judul Grafik</div>
+      <div class="fmt-row">
+        <input type="text" id="chart_title" placeholder="cth: Perbandingan Target IDR per Unit" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Tipe Grafik</div>
+      <div class="fmt-row">
+        <select id="chart_type" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%">
+          <option value="bar">📊 Batang (Vertikal)</option>
+          <option value="barh">📊 Batang (Horizontal)</option>
+          <option value="line">📈 Garis</option>
+          <option value="pie">🥧 Pie</option>
+          <option value="doughnut">🍩 Donut</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Kolom Label (Sumbu X / Kategori)</div>
+      <div class="fmt-row">
+        <select id="chart_labelField" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%"></select>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Kolom Nilai (Sumbu Y) — bisa pilih lebih dari satu</div>
+      <div class="colpick-groups" id="chartValueGroups" style="max-height:260px"></div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Pengurutan & Batas Data</div>
+      <div class="fmt-row" style="margin-bottom:8px">
+        <input type="checkbox" id="chart_sort"> Urutkan dari nilai tertinggi (berdasarkan kolom nilai pertama)
+      </div>
+      <div class="fmt-row">
+        <span>Tampilkan Top N baris</span>
+        <input type="number" id="chart_topn" min="0" step="1" value="0">
+        <span class="fmt-unit">(0 = semua)</span>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn primary" type="button" onclick="saveChartModal()">💾 Simpan Grafik</button>
+      <button class="btn gray" type="button" onclick="closeChartModal()">Batal</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Edit Header Kolom & Judul Tabel — dipakai bergantian per paket -->
 <div id="headerEditModal" class="modal-overlay hidden">
   <div class="modal-box" style="width:min(700px,96vw)">
@@ -381,42 +491,220 @@ const GROUPS = ["Ringkasan Anggaran", ...MONTH_BLOCKS.map(b=>b.group)];
 function cssKey(k){ return k.replace(/[^a-zA-Z0-9]/g,"_"); }
 
 // ------------------------------------------------------------
-// KONFIGURASI 5 PAKET TABEL — ganti "title" & "groups" di sini kalau
-// mau ubah default judul / kolom bawaan tiap paket. Kolom yang tidak
-// masuk "groups" tetap bisa ditambahkan manual lewat panel "Pilih
-// Kolom yang Ditampilkan" pada paket tsb.
+// KONFIGURASI DEFAULT TABEL (dipakai pertama kali / saat reset) —
+// setelah ini pengguna bebas Tambah/Hapus tabel dari UI; daftar aktual
+// tabel disimpan di packetConfigs (localStorage), BUKAN array ini.
 // ------------------------------------------------------------
-const PACKET_CONFIGS = [
-  {
-    id:"p1", icon:"📊",
-    title:"Ringkasan & Realisasi Bulanan",
-    groups:["Ringkasan Anggaran","Realisasi Bulanan","Akumulasi Realisasi"]
-  },
-  {
-    id:"p2", icon:"🔭",
-    title:"Outlook & Program Bulanan",
-    groups:["Outlook Bulanan","Akumulasi Outlook","Program Bulanan"]
-  },
-  {
-    id:"p3", icon:"🗂️",
-    title:"Sub Program, Kelas & Learner Bulanan",
-    groups:["Sub Program Bulanan","Kelas Bulanan","Learner Bulanan"]
-  },
-  {
-    id:"p4", icon:"🔁",
-    title:"Realisasi (R), Akumulasi (R) & Program (R)",
-    groups:["Realisasi (R) Bulanan","Akumulasi (R)","Program (R)"]
-  },
-  {
-    id:"p5", icon:"🎯",
-    title:"Sub Program (R), Kelas (R) & Learner (R)",
-    groups:["Sub Program (R)","Kelas (R)","Learner (R)"]
-  }
-];
+function defaultPacketConfigs(){
+  return [
+    {
+      id:"p1", icon:"📊",
+      title:"Ringkasan & Realisasi Bulanan",
+      groups:["Ringkasan Anggaran","Realisasi Bulanan","Akumulasi Realisasi"]
+    },
+    {
+      id:"p2", icon:"🔭",
+      title:"Outlook & Program Bulanan",
+      groups:["Outlook Bulanan","Akumulasi Outlook","Program Bulanan"]
+    },
+    {
+      id:"p3", icon:"🗂️",
+      title:"Sub Program, Kelas & Learner Bulanan",
+      groups:["Sub Program Bulanan","Kelas Bulanan","Learner Bulanan"]
+    },
+    {
+      id:"p4", icon:"🔁",
+      title:"Realisasi (R), Akumulasi (R) & Program (R)",
+      groups:["Realisasi (R) Bulanan","Akumulasi (R)","Program (R)"]
+    },
+    {
+      id:"p5", icon:"🎯",
+      title:"Sub Program (R), Kelas (R) & Learner (R)",
+      groups:["Sub Program (R)","Kelas (R)","Learner (R)"]
+    }
+  ];
+}
 
 let allData = [];
 let filteredData = [];
 const rowDataMap = new Map(); // lookup rowKey -> data baris (dipakai tombol Edit/Hapus di semua paket)
+
+// ============================================================
+// GRAFIK MANUAL — dibuat/diedit langsung dari UI, disimpan di
+// localStorage, dan datanya selalu mengikuti filteredData (data +
+// filter global "Anggaran UNIT" / pencarian yang aktif saat ini).
+// ============================================================
+const CHARTS_KEY = "icms_multi_charts_v1";
+const CHART_PALETTE = ["#0F5A7D","#007474","#FF8A3D","#7c3aed","#ef4444","#0d9488","#eab308","#2563eb","#db2777","#16a34a"];
+let charts = [];
+let chartInstances = {};
+function loadCharts(){
+  try{ const raw = localStorage.getItem(CHARTS_KEY); return raw ? JSON.parse(raw) : []; }
+  catch(e){ return []; }
+}
+function saveCharts(){ localStorage.setItem(CHARTS_KEY, JSON.stringify(charts)); }
+
+function renderCharts(){
+  const container = document.getElementById("chartsContainer");
+  if(!charts.length){
+    container.innerHTML = `<div class="chart-empty-state">Belum ada grafik. Klik "➕ Tambah Grafik" untuk membuat grafik pertama Anda dari data Summary ini.</div>`;
+    return;
+  }
+  container.innerHTML = `<div class="charts-grid">${charts.map(cfg=>`
+    <div class="chart-card" data-chart-id="${escapeAttr(cfg.id)}">
+      <div class="chart-card-header">
+        <div>
+          <div class="chart-card-title">${escapeHtml(cfg.title || "Grafik")}</div>
+          <div class="chart-card-sub">${escapeHtml(chartTypeLabel(cfg.type))} • ${escapeHtml((cfg.valueFields||[]).join(", "))}</div>
+        </div>
+        <div class="chart-card-actions">
+          <button class="icon-btn edit" data-chart-action="edit" data-chart-id="${escapeAttr(cfg.id)}" title="Edit grafik">✏️</button>
+          <button class="icon-btn delete" data-chart-action="delete" data-chart-id="${escapeAttr(cfg.id)}" title="Hapus grafik">🗑️</button>
+        </div>
+      </div>
+      <div class="chart-canvas-wrap"><canvas id="canvas_${escapeAttr(cfg.id)}"></canvas></div>
+    </div>
+  `).join("")}</div>`;
+  charts.forEach(cfg=>renderChartInstance(cfg));
+}
+function chartTypeLabel(t){
+  return {bar:"Batang",barh:"Batang Horizontal",line:"Garis",pie:"Pie",doughnut:"Donut"}[t] || t;
+}
+function renderChartInstance(cfg){
+  const canvas = document.getElementById("canvas_"+cfg.id);
+  if(!canvas || typeof Chart==="undefined") return;
+  if(chartInstances[cfg.id]){ chartInstances[cfg.id].destroy(); delete chartInstances[cfg.id]; }
+
+  let source = filteredData.slice();
+  const primaryField = (cfg.valueFields||[])[0];
+  if(cfg.sortDesc && primaryField){
+    source.sort((a,b)=>(Number(b[primaryField])||0)-(Number(a[primaryField])||0));
+  }
+  if(cfg.topN && cfg.topN>0){ source = source.slice(0, cfg.topN); }
+
+  const labels = source.map(r=>String(r[cfg.labelField] ?? ""));
+  const isPieLike = cfg.type==="pie" || cfg.type==="doughnut";
+  const datasets = (cfg.valueFields||[]).map((vf,i)=>{
+    const color = CHART_PALETTE[i % CHART_PALETTE.length];
+    return {
+      label: vf,
+      data: source.map(r=>Number(r[vf])||0),
+      backgroundColor: isPieLike ? source.map((_,j)=>CHART_PALETTE[j % CHART_PALETTE.length]) : color+"CC",
+      borderColor: color,
+      borderWidth: cfg.type==="line" ? 2 : 1,
+      fill: false,
+      tension: 0.25
+    };
+  });
+
+  const chartJsType = cfg.type==="barh" ? "bar" : cfg.type;
+  chartInstances[cfg.id] = new Chart(canvas.getContext("2d"), {
+    type: chartJsType,
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: cfg.type==="barh" ? "y" : "x",
+      plugins: {
+        legend: { display: (datasets.length>1) || isPieLike, labels:{font:{size:10}} },
+        title: { display:false }
+      },
+      scales: isPieLike ? {} : {
+        x: { ticks:{font:{size:9}} },
+        y: { ticks:{font:{size:9}}, beginAtZero:true }
+      }
+    }
+  });
+}
+
+function renderChartValueFieldGroups(selected){
+  const wrap = document.getElementById("chartValueGroups");
+  wrap.innerHTML = GROUPS.map(g=>{
+    const fields = FIELD_DEFS.filter(f=>f.group===g && f.type==="number");
+    if(!fields.length) return "";
+    return `<div class="colpick-group">
+      <div class="colpick-group-title"><span>${escapeHtml(g)}</span></div>
+      <div class="colpick-list">
+        ${fields.map(f=>`<label>
+          <input type="checkbox" data-chartvaluekey="${escapeAttr(f.key)}" ${selected.includes(f.key)?"checked":""}>
+          ${escapeHtml(f.label)}
+        </label>`).join("")}
+      </div>
+    </div>`;
+  }).join("");
+}
+function openChartModal(chartId){
+  const existing = chartId ? charts.find(c=>c.id===chartId) : null;
+  const cfg = existing || {
+    id: "c"+Date.now(),
+    title: "",
+    type: "bar",
+    labelField: (FIELD_DEFS.find(f=>f.type==="text") || FIELD_DEFS[0]).key,
+    valueFields: ["Target IDR"],
+    sortDesc: true,
+    topN: 0
+  };
+  document.getElementById("chartModalTitle").textContent = existing ? "📈 Edit Grafik" : "📈 Tambah Grafik";
+  document.getElementById("chart_id").value = existing ? existing.id : "";
+  document.getElementById("chart_title").value = cfg.title || "";
+  document.getElementById("chart_type").value = cfg.type || "bar";
+
+  const labelSelect = document.getElementById("chart_labelField");
+  const textFields = FIELD_DEFS.filter(f=>f.type==="text");
+  labelSelect.innerHTML = textFields.map(f=>`<option value="${escapeAttr(f.key)}">${escapeHtml(f.label)}</option>`).join("");
+  labelSelect.value = cfg.labelField || textFields[0]?.key || "";
+
+  renderChartValueFieldGroups(cfg.valueFields || []);
+  document.getElementById("chart_sort").checked = cfg.sortDesc !== false;
+  document.getElementById("chart_topn").value = cfg.topN || 0;
+
+  document.getElementById("chartModal").dataset.newId = existing ? "" : cfg.id;
+  document.getElementById("chartModal").classList.remove("hidden");
+}
+function closeChartModal(){ document.getElementById("chartModal").classList.add("hidden"); }
+function saveChartModal(){
+  const existingId = document.getElementById("chart_id").value;
+  const newId = document.getElementById("chartModal").dataset.newId;
+  const id = existingId || newId;
+
+  const valueFields = Array.from(document.querySelectorAll("#chartValueGroups input[data-chartvaluekey]:checked"))
+    .map(el=>el.dataset.chartvaluekey);
+  if(!valueFields.length){ showAlert("Pilih minimal 1 kolom nilai (sumbu Y) untuk grafik.","error"); return; }
+
+  const cfg = {
+    id,
+    title: document.getElementById("chart_title").value.trim() || "Grafik Tanpa Judul",
+    type: document.getElementById("chart_type").value,
+    labelField: document.getElementById("chart_labelField").value,
+    valueFields,
+    sortDesc: document.getElementById("chart_sort").checked,
+    topN: Number(document.getElementById("chart_topn").value) || 0
+  };
+
+  const idx = charts.findIndex(c=>c.id===id);
+  if(idx>=0){ charts[idx] = cfg; } else { charts.push(cfg); }
+  saveCharts();
+  closeChartModal();
+  renderCharts();
+  showAlert("Grafik \""+cfg.title+"\" berhasil disimpan.","success");
+}
+function deleteChart(id){
+  if(!confirm("Hapus grafik ini?")) return;
+  if(chartInstances[id]){ chartInstances[id].destroy(); delete chartInstances[id]; }
+  charts = charts.filter(c=>c.id!==id);
+  saveCharts();
+  renderCharts();
+}
+function initChartsDelegation(){
+  document.getElementById("chartsContainer").addEventListener("click",(e)=>{
+    const btn = e.target.closest("button[data-chart-action]");
+    if(!btn) return;
+    const action = btn.dataset.chartAction;
+    const id = btn.dataset.chartId;
+    if(action==="edit") openChartModal(id);
+    else if(action==="delete") deleteChart(id);
+  });
+}
 
 // ------------------------------------------------------------
 // STATE PER PAKET — setiap paket punya localStorage key sendiri,
@@ -431,22 +719,56 @@ function loadSetLS(key, fallbackArr){
 function loadObjLS(key){
   try{ const raw=localStorage.getItem(key); return raw?JSON.parse(raw):{}; }catch(e){ return {}; }
 }
+function loadColumnOrderLS(key){
+  const defaultOrder = FIELD_DEFS.map(f=>f.key);
+  try{
+    const raw = localStorage.getItem(key);
+    if(!raw) return defaultOrder.slice();
+    const saved = JSON.parse(raw);
+    const validKeys = new Set(defaultOrder);
+    const cleaned = saved.filter(k=>validKeys.has(k));
+    defaultOrder.forEach(k=>{ if(!cleaned.includes(k)) cleaned.push(k); }); // kolom baru (kalau ada) ditaruh di akhir
+    return cleaned;
+  }catch(e){ return defaultOrder.slice(); }
+}
 
-const packets = PACKET_CONFIGS.map(cfg=>{
-  const pk = {
-    cfg,
-    id: cfg.id,
-    currentPage: 1
-  };
-  const defaultCols = FIELD_DEFS.filter(f=>cfg.groups.includes(f.group)).map(f=>f.key);
+// ------------------------------------------------------------
+// DAFTAR TABEL AKTUAL (dinamis) — bisa bertambah/berkurang dari UI
+// lewat tombol "➕ Tambah Tabel" / "🗑️ Hapus Tabel". Metadata (id,
+// icon, title, groups default) disimpan di packetConfigs; state
+// tampilan per tabel (kolom, warna, urutan kolom, dst) tetap
+// tersimpan terpisah lewat lsKey() seperti sebelumnya.
+// ------------------------------------------------------------
+const PACKET_LIST_KEY = "icms_multi_packet_list_v1";
+function loadPacketList(){
+  try{
+    const raw = localStorage.getItem(PACKET_LIST_KEY);
+    if(!raw) return defaultPacketConfigs();
+    const saved = JSON.parse(raw);
+    if(Array.isArray(saved) && saved.length) return saved;
+    return defaultPacketConfigs();
+  }catch(e){ return defaultPacketConfigs(); }
+}
+function savePacketList(){
+  localStorage.setItem(PACKET_LIST_KEY, JSON.stringify(packetConfigs.map(c=>({id:c.id,icon:c.icon,title:c.title,groups:c.groups||[]}))));
+}
+function createPacketState(cfg){
+  const pk = { cfg, id: cfg.id, currentPage: 1 };
+  const defaultCols = (cfg.groups && cfg.groups.length)
+    ? FIELD_DEFS.filter(f=>cfg.groups.includes(f.group)).map(f=>f.key)
+    : FIELD_DEFS.map(f=>f.key);
   pk.visibleCols = loadSetLS(lsKey(pk,"visible_cols"), defaultCols);
   pk.rowStyles = loadObjLS(lsKey(pk,"row_styles"));
   pk.colStyles = loadObjLS(lsKey(pk,"col_styles"));
   pk.colHeaderStyles = loadObjLS(lsKey(pk,"col_header_styles"));
+  pk.columnOrder = loadColumnOrderLS(lsKey(pk,"column_order"));
   const savedTitle = localStorage.getItem(lsKey(pk,"table_title"));
   pk.tableTitle = (savedTitle && savedTitle.trim()) ? savedTitle : (cfg.icon+" "+cfg.title);
   return pk;
-});
+}
+
+let packetConfigs = loadPacketList();
+let packets = packetConfigs.map(createPacketState);
 function getPacket(id){ return packets.find(p=>p.id===id); }
 
 // ------------------------------------------------------------
@@ -455,12 +777,12 @@ function getPacket(id){ return packets.find(p=>p.id===id); }
 // ------------------------------------------------------------
 const PACKET_ORDER_KEY = "icms_multi_packet_order";
 function loadPacketOrder(){
-  const defaultOrder = PACKET_CONFIGS.map(c=>c.id);
+  const defaultOrder = packetConfigs.map(c=>c.id);
   try{
     const raw = localStorage.getItem(PACKET_ORDER_KEY);
     if(!raw) return defaultOrder;
     const saved = JSON.parse(raw);
-    // pastikan semua id valid & lengkap (jaga-jaga kalau konfigurasi paket berubah)
+    // pastikan semua id valid & lengkap (jaga-jaga kalau daftar tabel berubah)
     const valid = saved.filter(id=>defaultOrder.includes(id));
     defaultOrder.forEach(id=>{ if(!valid.includes(id)) valid.push(id); });
     return valid;
@@ -472,14 +794,97 @@ function savePacketVisibleCols(pk){ localStorage.setItem(lsKey(pk,"visible_cols"
 function savePacketRowStyles(pk){ localStorage.setItem(lsKey(pk,"row_styles"), JSON.stringify(pk.rowStyles)); }
 function savePacketColStyles(pk){ localStorage.setItem(lsKey(pk,"col_styles"), JSON.stringify(pk.colStyles)); }
 function savePacketColHeaderStyles(pk){ localStorage.setItem(lsKey(pk,"col_header_styles"), JSON.stringify(pk.colHeaderStyles)); }
+function savePacketColumnOrder(pk){ localStorage.setItem(lsKey(pk,"column_order"), JSON.stringify(pk.columnOrder)); }
 function savePacketTitle(pk){ localStorage.setItem(lsKey(pk,"table_title"), pk.tableTitle); }
+
+// ------------------------------------------------------------
+// TAMBAH / HAPUS TABEL
+// ------------------------------------------------------------
+function renderNewTableGroupsPicker(){
+  const wrap = document.getElementById("newTableGroups");
+  wrap.innerHTML = `<div class="colpick-list" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
+    ${GROUPS.map(g=>`<label><input type="checkbox" data-newtablegroup="${escapeAttr(g)}"> ${escapeHtml(g)}</label>`).join("")}
+  </div>`;
+}
+function toggleAllNewTableGroups(check){
+  document.querySelectorAll('#newTableGroups input[data-newtablegroup]').forEach(cb=>{ cb.checked = check; });
+}
+function openAddTableModal(){
+  document.getElementById("newTable_title").value = "";
+  renderNewTableGroupsPicker();
+  document.getElementById("addTableModal").classList.remove("hidden");
+}
+function closeAddTableModal(){ document.getElementById("addTableModal").classList.add("hidden"); }
+function saveAddTableModal(){
+  const title = document.getElementById("newTable_title").value.trim() || "Tabel Baru";
+  const groups = Array.from(document.querySelectorAll('#newTableGroups input[data-newtablegroup]:checked')).map(cb=>cb.dataset.newtablegroup);
+  const cfg = { id:"pk"+Date.now(), icon:"📋", title, groups };
+  packetConfigs.push(cfg);
+  savePacketList();
+  const pk = createPacketState(cfg);
+  packets.push(pk);
+  packetOrder.push(cfg.id);
+  savePacketOrder();
+  closeAddTableModal();
+  renderAllPacketShells();
+  packets.forEach(p=>renderTable(p));
+  showAlert("Tabel \""+cfg.title+"\" berhasil dibuat. Atur kolomnya lewat \"Pilih Kolom yang Ditampilkan\".","success");
+}
+function deletePacket(id){
+  if(packets.length<=1){ showAlert("Minimal harus ada 1 tabel — tidak bisa menghapus tabel terakhir.","error"); return; }
+  const pk = getPacket(id);
+  if(!pk) return;
+  if(!confirm("Hapus tabel \""+pk.tableTitle+"\"? Pengaturan kolom/warna/urutan tabel ini akan hilang (data sumber TIDAK terhapus, tetap ada di tabel lain).")) return;
+  ["visible_cols","row_styles","col_styles","col_header_styles","column_order","table_title"].forEach(suffix=>{
+    localStorage.removeItem(lsKey(pk,suffix));
+  });
+  packets = packets.filter(p=>p.id!==id);
+  packetConfigs = packetConfigs.filter(c=>c.id!==id);
+  packetOrder = packetOrder.filter(pid=>pid!==id);
+  savePacketList();
+  savePacketOrder();
+  renderAllPacketShells();
+  packets.forEach(p=>renderTable(p));
+}
+// Field ditampilkan sesuai urutan custom pk.columnOrder (bukan urutan asli FIELD_DEFS)
+function getOrderedFieldDefs(pk){
+  return pk.columnOrder.map(k=>FIELD_DEFS.find(f=>f.key===k)).filter(Boolean);
+}
+function resetColumnOrder(pkId){
+  const pk = getPacket(pkId);
+  if(!pk) return;
+  pk.columnOrder = FIELD_DEFS.map(f=>f.key);
+  savePacketColumnOrder(pk);
+  buildTableHead(pk);
+  renderTable(pk);
+}
+function reorderColumnsDrag(pkId, draggedKey, targetKey, placeAfter){
+  const pk = getPacket(pkId);
+  if(!pk) return;
+  const order = pk.columnOrder.slice();
+  const from = order.indexOf(draggedKey);
+  if(from<0) return;
+  order.splice(from,1);
+  let to = order.indexOf(targetKey);
+  if(to<0){ order.push(draggedKey); }
+  else{
+    if(placeAfter) to += 1;
+    order.splice(to,0,draggedKey);
+  }
+  pk.columnOrder = order;
+  savePacketColumnOrder(pk);
+  buildTableHead(pk);
+  renderTable(pk);
+}
 
 document.addEventListener("DOMContentLoaded", ()=>{
   initAuthUI();
   buildForm();
+  charts = loadCharts();
   renderAllPacketShells();
   loadData();
   initPacketsContainerDelegation();
+  initChartsDelegation();
 });
 
 // Satu listener terpasang SEKALI di #packetsContainer (bukan per-tbody), supaya
@@ -502,44 +907,95 @@ function initPacketsContainerDelegation(){
     else if(action==="delete"){ if(r) deleteOne(r.id, rk); }
   });
 
-  // Drag & drop untuk mengurutkan ulang kartu paket (seret dari header kartu)
-  let draggedId = null;
+  // Drag & drop untuk (1) mengurutkan ulang kartu paket (seret header kartu)
+  // dan (2) mengurutkan ulang kolom tabel (seret judul kolom / <th>).
+  // dragCtx menyimpan jenis drag yang sedang berlangsung supaya dragover/drop
+  // tahu harus memindahkan kartu atau kolom.
+  let dragCtx = null; // {type:"packet", id} | {type:"column", packetId, key}
+
   container.addEventListener("dragstart", (e)=>{
+    const th = e.target.closest("th[data-col]");
+    if(th){
+      const table = th.closest("table");
+      const pkId = table && table.id.startsWith("dataTable_") ? table.id.slice("dataTable_".length) : null;
+      if(pkId){
+        dragCtx = {type:"column", packetId:pkId, key: th.dataset.col};
+        th.classList.add("dragging-col");
+        if(e.dataTransfer){ e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", th.dataset.col); }
+        return;
+      }
+    }
     const card = e.target.closest(".packet-card");
     if(!card) return;
-    draggedId = card.dataset.packetId;
+    dragCtx = {type:"packet", id: card.dataset.packetId};
     card.classList.add("dragging");
-    if(e.dataTransfer){ e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", draggedId); }
+    if(e.dataTransfer){ e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", card.dataset.packetId); }
   });
-  container.addEventListener("dragend", (e)=>{
-    const card = e.target.closest(".packet-card");
-    if(card) card.classList.remove("dragging");
-    container.querySelectorAll(".packet-card.drag-over").forEach(c=>c.classList.remove("drag-over"));
-    draggedId = null;
+
+  container.addEventListener("dragend", ()=>{
+    container.querySelectorAll(".dragging-col").forEach(el=>el.classList.remove("dragging-col"));
+    container.querySelectorAll(".dragging").forEach(el=>el.classList.remove("dragging"));
+    container.querySelectorAll(".drag-over").forEach(el=>el.classList.remove("drag-over"));
+    container.querySelectorAll(".col-drag-over").forEach(el=>el.classList.remove("col-drag-over"));
+    dragCtx = null;
   });
+
   container.addEventListener("dragover", (e)=>{
-    const card = e.target.closest(".packet-card");
-    if(!card || !draggedId) return;
-    e.preventDefault();
-    if(e.dataTransfer) e.dataTransfer.dropEffect = "move";
-    if(card.dataset.packetId !== draggedId) card.classList.add("drag-over");
+    if(!dragCtx) return;
+    if(dragCtx.type==="column"){
+      const th = e.target.closest("th[data-col]");
+      if(!th) return;
+      const table = th.closest("table");
+      const pkId = table && table.id.startsWith("dataTable_") ? table.id.slice("dataTable_".length) : null;
+      if(pkId !== dragCtx.packetId) return;
+      e.preventDefault();
+      if(e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      if(th.dataset.col !== dragCtx.key) th.classList.add("col-drag-over");
+    }else{
+      const card = e.target.closest(".packet-card");
+      if(!card) return;
+      e.preventDefault();
+      if(e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      if(card.dataset.packetId !== dragCtx.id) card.classList.add("drag-over");
+    }
   });
+
   container.addEventListener("dragleave", (e)=>{
+    const th = e.target.closest("th[data-col]");
+    if(th) th.classList.remove("col-drag-over");
     const card = e.target.closest(".packet-card");
     if(card) card.classList.remove("drag-over");
   });
+
   container.addEventListener("drop", (e)=>{
-    const card = e.target.closest(".packet-card");
-    if(!card || !draggedId) return;
-    e.preventDefault();
-    card.classList.remove("drag-over");
-    const targetId = card.dataset.packetId;
-    if(targetId && targetId!==draggedId){
-      const rect = card.getBoundingClientRect();
-      const placeAfter = (e.clientY - rect.top) > rect.height/2;
-      reorderPacketsDrag(draggedId, targetId, placeAfter);
+    if(!dragCtx) return;
+    if(dragCtx.type==="column"){
+      const th = e.target.closest("th[data-col]");
+      if(!th){ dragCtx=null; return; }
+      const table = th.closest("table");
+      const pkId = table && table.id.startsWith("dataTable_") ? table.id.slice("dataTable_".length) : null;
+      if(pkId !== dragCtx.packetId){ dragCtx=null; return; }
+      e.preventDefault();
+      th.classList.remove("col-drag-over");
+      const targetKey = th.dataset.col;
+      if(targetKey && targetKey !== dragCtx.key){
+        const rect = th.getBoundingClientRect();
+        const placeAfter = (e.clientX - rect.left) > rect.width/2;
+        reorderColumnsDrag(dragCtx.packetId, dragCtx.key, targetKey, placeAfter);
+      }
+    }else{
+      const card = e.target.closest(".packet-card");
+      if(!card){ dragCtx=null; return; }
+      e.preventDefault();
+      card.classList.remove("drag-over");
+      const targetId = card.dataset.packetId;
+      if(targetId && targetId!==dragCtx.id){
+        const rect = card.getBoundingClientRect();
+        const placeAfter = (e.clientY - rect.top) > rect.height/2;
+        reorderPacketsDrag(dragCtx.id, targetId, placeAfter);
+      }
     }
-    draggedId = null;
+    dragCtx = null;
   });
 }
 
@@ -617,6 +1073,7 @@ function renderAllPacketShells(){
           <button class="btn teal" onclick="toggleColumnPanel('${pk.id}')">🧮 Pilih Kolom yang Ditampilkan</button>
           <button class="btn purple" onclick="toggleColorPanel('${pk.id}')">🎨 Atur Warna Kolom</button>
           <button class="btn orange" onclick="openHeaderEditModal('${pk.id}')">✏️ Edit Header &amp; Judul Tabel</button>
+          <button class="btn red" onclick="deletePacket('${pk.id}')" title="Hapus tabel ini">🗑️ Hapus Tabel</button>
         </div>
       </div>
       <div class="packet-body">
@@ -624,8 +1081,10 @@ function renderAllPacketShells(){
           <div class="colpanel-toolbar">
             <button class="miniBtn" onclick="toggleAllColumns('${pk.id}', true)">Tampilkan Semua</button>
             <button class="miniBtn" onclick="toggleAllColumns('${pk.id}', false)">Sembunyikan Semua</button>
+            <button class="miniBtn" onclick="resetColumnOrder('${pk.id}')">↺ Reset Urutan Kolom</button>
             <span class="colpanel-count" id="colpanelCount_${pk.id}"></span>
           </div>
+          <div style="font-size:10px;color:var(--muted);margin:-4px 0 8px">💡 Tips: seret judul kolom pada tabel di bawah untuk mengubah urutannya.</div>
           <div class="colpick-groups" id="colpickGroups_${pk.id}"></div>
         </section>
 
@@ -773,6 +1232,7 @@ function resetFilters(){
 
 function render(){
   renderSummary();
+  renderCharts();
   packets.forEach(pk=>renderTable(pk));
 }
 function renderSummary(){
@@ -790,7 +1250,7 @@ function sum(field){return filteredData.reduce((a,r)=>a+(Number(r[field])||0),0)
 function buildTableHead(pk){
   const tr=document.getElementById("theadRow_"+pk.id);
   let html = `<th class="sticky-col no-col">No</th>`;
-  FIELD_DEFS.forEach(f=>{
+  getOrderedFieldDefs(pk).forEach(f=>{
     const hidden = pk.visibleCols.has(f.key) ? "" : " col-hidden";
     const cs = pk.colStyles[f.key] || {};
     const hs = pk.colHeaderStyles[f.key] || {};
@@ -803,7 +1263,7 @@ function buildTableHead(pk){
     if(hs.bold) parts.push(`font-weight:700`);
     const styleAttr = parts.length ? ` style="${escapeAttr(parts.join(";"))}"` : "";
     const label = hs.label || f.label;
-    html += `<th data-col="${escapeAttr(f.key)}" class="${hidden.trim()}"${styleAttr}>${escapeHtml(label)}</th>`;
+    html += `<th data-col="${escapeAttr(f.key)}" class="${hidden.trim()}" draggable="true" title="Seret untuk mengurutkan kolom"${styleAttr}>${escapeHtml(label)}</th>`;
   });
   html += `<th class="sticky-col action-col">Aksi</th>`;
   tr.innerHTML = html;
@@ -824,7 +1284,7 @@ function renderTable(pk){
     if(st.bold) styleParts.push(`font-weight:700`);
     if(st.height) styleParts.push(`height:${st.height}px`);
     const styleAttr = styleParts.length ? ` style="${escapeAttr(styleParts.join(";"))}"` : "";
-    const cells = FIELD_DEFS.map(f=>{
+    const cells = getOrderedFieldDefs(pk).map(f=>{
       let v = r[f.key];
       v = f.type==="number" ? num(v,0) : escapeHtml(v);
       const cls = ["td"];
