@@ -249,6 +249,24 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
       </div>
     </div>
 
+    <div class="form-section" id="fmt_width_section">
+      <div class="form-section-title">Lebar Kolom</div>
+      <div class="fmt-row">
+        <input type="checkbox" id="fmt_use_width" onchange="toggleFmtField('fmt_use_width','fmt_width')"> Aktifkan lebar kolom custom
+        <input type="number" id="fmt_width" min="40" max="600" step="5">
+        <span class="fmt-unit">px</span>
+      </div>
+    </div>
+
+    <div class="form-section" id="fmt_height_section">
+      <div class="form-section-title">Tinggi Baris</div>
+      <div class="fmt-row">
+        <input type="checkbox" id="fmt_use_height" onchange="toggleFmtField('fmt_use_height','fmt_height')"> Aktifkan tinggi baris custom
+        <input type="number" id="fmt_height" min="18" max="200" step="2">
+        <span class="fmt-unit">px</span>
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn primary" type="button" onclick="saveFormat()">💾 Terapkan</button>
       <button class="btn orange" type="button" onclick="resetFormat()">↺ Reset ke Default</button>
@@ -436,7 +454,9 @@ function buildTableHead(){
   let html = `<th class="sticky-col">No</th>`;
   FIELD_DEFS.forEach(f=>{
     const hidden = visibleCols.has(f.key) ? "" : " col-hidden";
-    html += `<th data-col="${escapeAttr(f.key)}" class="${hidden.trim()}">${escapeHtml(f.label)}</th>`;
+    const cw = (colStyles[f.key] || {}).width;
+    const widthStyle = cw ? ` style="width:${cw}px;min-width:${cw}px;max-width:${cw}px;overflow:hidden;text-overflow:ellipsis"` : "";
+    html += `<th data-col="${escapeAttr(f.key)}" class="${hidden.trim()}"${widthStyle}>${escapeHtml(f.label)}</th>`;
   });
   html += `<th class="sticky-col">Aksi</th>`;
   tr.innerHTML = html;
@@ -537,6 +557,7 @@ function renderTable(){
     if(st.color) styleParts.push(`color:${st.color}`);
     if(st.size) styleParts.push(`font-size:${st.size}px`);
     if(st.bold) styleParts.push(`font-weight:700`);
+    if(st.height) styleParts.push(`height:${st.height}px`);
     const styleAttr = styleParts.length ? ` style="${escapeAttr(styleParts.join(";"))}"` : "";
     const cells = FIELD_DEFS.map(f=>{
       let v = r[f.key];
@@ -544,11 +565,15 @@ function renderTable(){
       const cls = ["td"];
       if(f.key==="Anggaran UNIT") cls.push("left");
       if(!visibleCols.has(f.key)) cls.push("col-hidden");
-      // Gabungkan format baris (st) dengan format kolom (colSt) — kolom MENANG kalau bentrok.
+      // Gabungkan format baris (st) dengan format kolom (colSt) — kolom MENANG kalau bentrok,
+      // dan kalau dua-duanya sama-sama mengatur properti yang sama, warna kolom dipakai
+      // dalam versi lebih GELAP supaya kelihatan ada tumpang-tindih.
       const colSt = colStyles[f.key] || {};
+      const bgConflict = colSt.bg !== undefined && st.bg !== undefined;
+      const colorConflict = colSt.color !== undefined && st.color !== undefined;
       const merged = {
-        bg: colSt.bg !== undefined ? colSt.bg : st.bg,
-        color: colSt.color !== undefined ? colSt.color : st.color,
+        bg: colSt.bg !== undefined ? (bgConflict ? darkenHex(colSt.bg) : colSt.bg) : st.bg,
+        color: colSt.color !== undefined ? (colorConflict ? darkenHex(colSt.color) : colSt.color) : st.color,
         size: colSt.size !== undefined ? colSt.size : st.size,
         bold: colSt.bold !== undefined ? colSt.bold : st.bold
       };
@@ -557,6 +582,8 @@ function renderTable(){
       if(merged.color) cellParts.push(`color:${merged.color}`);
       if(merged.size) cellParts.push(`font-size:${merged.size}px`);
       if(merged.bold) cellParts.push(`font-weight:700`);
+      if(st.height) cellParts.push(`height:${st.height}px`);
+      if(colSt.width) cellParts.push(`width:${colSt.width}px;min-width:${colSt.width}px;max-width:${colSt.width}px;overflow:hidden;text-overflow:ellipsis`);
       const cellStyleAttr = cellParts.length ? ` style="${escapeAttr(cellParts.join(";"))}"` : "";
       return `<td data-col="${escapeAttr(f.key)}" class="${cls.join(" ")}"${cellStyleAttr}>${v}</td>`;
     }).join("");
@@ -564,7 +591,7 @@ function renderTable(){
       <td class="sticky-col"${styleAttr}>${start+i+1}</td>
       ${cells}
       <td class="sticky-col"${styleAttr}>
-        <button class="icon-btn format" title="Format baris (warna, ukuran teks, bold)" onclick="openFormat('${escapeAttr(r.id)}')">🎨</button>
+        <button class="icon-btn format" title="Format baris (warna, ukuran teks, bold, tinggi)" onclick="openFormat('${escapeAttr(r.id)}')">🎨</button>
         <button class="icon-btn edit" onclick='openEdit(${JSON.stringify(r).replace(/'/g,"&#39;")})'>✏️</button>
         <button class="icon-btn delete" onclick="deleteOne('${escapeAttr(r.id)}')">🗑️</button>
       </td>
@@ -594,6 +621,8 @@ function openFormat(id){
   document.getElementById("fmt_type").value = "row";
   document.getElementById("formatModalTitle").textContent = "🎨 Format Baris";
   fillFormatFields(rowStyles[id] || {});
+  document.getElementById("fmt_width_section").classList.add("hidden");
+  document.getElementById("fmt_height_section").classList.remove("hidden");
   document.getElementById("fmt_id").value = id;
   document.getElementById("formatModal").classList.remove("hidden");
 }
@@ -602,6 +631,8 @@ function openColumnFormat(key){
   document.getElementById("fmt_type").value = "col";
   document.getElementById("formatModalTitle").textContent = "🎨 Format Kolom: " + (def ? def.label : key);
   fillFormatFields(colStyles[key] || {});
+  document.getElementById("fmt_width_section").classList.remove("hidden");
+  document.getElementById("fmt_height_section").classList.add("hidden");
   document.getElementById("fmt_id").value = key;
   document.getElementById("formatModal").classList.remove("hidden");
 }
@@ -622,6 +653,16 @@ function fillFormatFields(s){
   document.getElementById("fmt_size").disabled = !hasSize;
 
   document.getElementById("fmt_bold").checked = !!s.bold;
+
+  const hasWidth = s.width !== undefined;
+  document.getElementById("fmt_use_width").checked = hasWidth;
+  document.getElementById("fmt_width").value = s.width || 120;
+  document.getElementById("fmt_width").disabled = !hasWidth;
+
+  const hasHeight = s.height !== undefined;
+  document.getElementById("fmt_use_height").checked = hasHeight;
+  document.getElementById("fmt_height").value = s.height || 28;
+  document.getElementById("fmt_height").disabled = !hasHeight;
 }
 function closeFormatModal(){
   document.getElementById("formatModal").classList.add("hidden");
@@ -649,11 +690,18 @@ function saveFormat(){
   }
 
   if(type==="col"){
+    if(document.getElementById("fmt_use_width").checked){
+      style.width = Number(document.getElementById("fmt_width").value) || 120;
+    }
     if(Object.keys(style).length){ colStyles[id] = style; } else { delete colStyles[id]; }
     saveColStyles(colStyles);
+    buildTableHead();
     renderColorPickerGroups();
     updateColorpanelCount();
   }else{
+    if(document.getElementById("fmt_use_height").checked){
+      style.height = Number(document.getElementById("fmt_height").value) || 28;
+    }
     if(Object.keys(style).length){ rowStyles[id] = style; } else { delete rowStyles[id]; }
     saveRowStyles(rowStyles);
   }
@@ -667,6 +715,7 @@ function resetFormat(){
     if(type==="col"){
       delete colStyles[id];
       saveColStyles(colStyles);
+      buildTableHead();
       renderColorPickerGroups();
       updateColorpanelCount();
     }else{
@@ -718,6 +767,7 @@ function updateColorpanelCount(){
 function clearColumnFormat(key){
   delete colStyles[key];
   saveColStyles(colStyles);
+  buildTableHead();
   renderColorPickerGroups();
   updateColorpanelCount();
   renderTable();
@@ -888,6 +938,20 @@ function showAlert(msg,type){
   const el=document.getElementById("alert");
   el.textContent=msg;
   el.style.color=type==="error"?"#fecaca":type==="success"?"#bbf7d0":"#bae6fd";
+}
+// Menggelapkan warna hex sebesar `amount` (0-1). Dipakai saat format kolom
+// menang atas format baris di sel yang sama, supaya kelihatan ada tumpang-tindih.
+function darkenHex(hex, amount=0.22){
+  if(!hex) return hex;
+  let h = String(hex).replace("#","");
+  if(h.length===3) h = h.split("").map(c=>c+c).join("");
+  if(!/^[0-9a-fA-F]{6}$/.test(h)) return hex;
+  const num = parseInt(h,16);
+  let r=(num>>16)&255, g=(num>>8)&255, b=num&255;
+  r = Math.max(0, Math.round(r*(1-amount)));
+  g = Math.max(0, Math.round(g*(1-amount)));
+  b = Math.max(0, Math.round(b*(1-amount)));
+  return "#"+[r,g,b].map(x=>x.toString(16).padStart(2,"0")).join("");
 }
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 function escapeAttr(v){return String(v??"").replace(/'/g,"\\'").replace(/"/g,'&quot;')}
