@@ -267,6 +267,13 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
       </div>
     </div>
 
+    <div class="form-section" id="fmt_label_section">
+      <div class="form-section-title">Ganti Nama Header (opsional)</div>
+      <div class="fmt-row">
+        <input type="text" id="fmt_label" placeholder="Kosongkan untuk pakai nama asli" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:11px;width:100%">
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn primary" type="button" onclick="saveFormat()">💾 Terapkan</button>
       <button class="btn orange" type="button" onclick="resetFormat()">↺ Reset ke Default</button>
@@ -387,10 +394,21 @@ function loadColStyles(){
 function saveColStyles(obj){
   localStorage.setItem(COL_STYLES_KEY, JSON.stringify(obj));
 }
+const COL_HEADER_STYLES_KEY = "icms_summary_col_header_styles";
+function loadColHeaderStyles(){
+  try{
+    const raw = localStorage.getItem(COL_HEADER_STYLES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){ return {}; }
+}
+function saveColHeaderStyles(obj){
+  localStorage.setItem(COL_HEADER_STYLES_KEY, JSON.stringify(obj));
+}
 
 let visibleCols = loadVisibleCols();
 let rowStyles = loadRowStyles();
 let colStyles = loadColStyles();
+let colHeaderStyles = loadColHeaderStyles();
 
 document.addEventListener("DOMContentLoaded", ()=>{ initAuthUI(); buildForm(); buildTableHead(); initColumnPicker(); initColorPicker(); loadData(); });
 
@@ -455,8 +473,16 @@ function buildTableHead(){
   FIELD_DEFS.forEach(f=>{
     const hidden = visibleCols.has(f.key) ? "" : " col-hidden";
     const cw = (colStyles[f.key] || {}).width;
-    const widthStyle = cw ? ` style="width:${cw}px;min-width:${cw}px;max-width:${cw}px;overflow:hidden;text-overflow:ellipsis"` : "";
-    html += `<th data-col="${escapeAttr(f.key)}" class="${hidden.trim()}"${widthStyle}>${escapeHtml(f.label)}</th>`;
+    const hs = colHeaderStyles[f.key] || {};
+    const parts = [];
+    if(cw) parts.push(`width:${cw}px;min-width:${cw}px;max-width:${cw}px;overflow:hidden;text-overflow:ellipsis`);
+    if(hs.bg) parts.push(`background:${hs.bg}`);
+    if(hs.color) parts.push(`color:${hs.color}`);
+    if(hs.size) parts.push(`font-size:${hs.size}px`);
+    if(hs.bold) parts.push(`font-weight:700`);
+    const styleAttr = parts.length ? ` style="${escapeAttr(parts.join(";"))}"` : "";
+    const label = hs.label || f.label;
+    html += `<th data-col="${escapeAttr(f.key)}" class="${hidden.trim()}"${styleAttr}>${escapeHtml(label)}</th>`;
   });
   html += `<th class="sticky-col">Aksi</th>`;
   tr.innerHTML = html;
@@ -608,12 +634,15 @@ function changePage(delta){
 }
 
 // ============================================================
-// FITUR 3: Format baris & kolom — warna latar, warna teks, ukuran
-// teks, dan bold. Satu modal (#formatModal) dipakai untuk KEDUANYA:
-//   - Format baris: dibuka lewat tombol 🎨 di kolom Aksi tiap baris,
+// FITUR 3: Format baris, kolom & header — warna latar, warna teks,
+// ukuran teks, bold, lebar/tinggi, dan (khusus header) ganti nama
+// tampilan. Satu modal (#formatModal) dipakai untuk SEMUA MODE:
+//   - Format baris: tombol 🎨 di kolom Aksi tiap baris,
 //     disimpan di rowStyles (localStorage: icms_summary_row_styles).
-//   - Format kolom: dibuka lewat panel "🎨 Atur Warna Kolom" di atas
-//     tabel, disimpan di colStyles (localStorage: icms_summary_col_styles).
+//   - Format sel kolom: tombol 🎨 di panel "Atur Warna Kolom",
+//     disimpan di colStyles (localStorage: icms_summary_col_styles).
+//   - Format header kolom: tombol 📝 di panel "Atur Warna Kolom",
+//     disimpan di colHeaderStyles (localStorage: icms_summary_col_header_styles).
 // Kalau format baris & kolom bentrok di sel yang sama, KOLOM MENANG
 // (lihat penggabungan "merged" di dalam renderTable()).
 // ============================================================
@@ -623,16 +652,31 @@ function openFormat(id){
   fillFormatFields(rowStyles[id] || {});
   document.getElementById("fmt_width_section").classList.add("hidden");
   document.getElementById("fmt_height_section").classList.remove("hidden");
+  document.getElementById("fmt_label_section").classList.add("hidden");
   document.getElementById("fmt_id").value = id;
   document.getElementById("formatModal").classList.remove("hidden");
 }
 function openColumnFormat(key){
   const def = FIELD_DEFS.find(f=>f.key===key);
   document.getElementById("fmt_type").value = "col";
-  document.getElementById("formatModalTitle").textContent = "🎨 Format Kolom: " + (def ? def.label : key);
+  document.getElementById("formatModalTitle").textContent = "🎨 Format Sel Kolom: " + (def ? def.label : key);
   fillFormatFields(colStyles[key] || {});
   document.getElementById("fmt_width_section").classList.remove("hidden");
   document.getElementById("fmt_height_section").classList.add("hidden");
+  document.getElementById("fmt_label_section").classList.add("hidden");
+  document.getElementById("fmt_id").value = key;
+  document.getElementById("formatModal").classList.remove("hidden");
+}
+function openHeaderFormat(key){
+  const def = FIELD_DEFS.find(f=>f.key===key);
+  const hs = colHeaderStyles[key] || {};
+  document.getElementById("fmt_type").value = "header";
+  document.getElementById("formatModalTitle").textContent = "📝 Format Header: " + (def ? def.label : key);
+  fillFormatFields(hs);
+  document.getElementById("fmt_width_section").classList.add("hidden");
+  document.getElementById("fmt_height_section").classList.add("hidden");
+  document.getElementById("fmt_label_section").classList.remove("hidden");
+  document.getElementById("fmt_label").value = hs.label || "";
   document.getElementById("fmt_id").value = key;
   document.getElementById("formatModal").classList.remove("hidden");
 }
@@ -698,6 +742,14 @@ function saveFormat(){
     buildTableHead();
     renderColorPickerGroups();
     updateColorpanelCount();
+  }else if(type==="header"){
+    const labelVal = document.getElementById("fmt_label").value.trim();
+    if(labelVal){ style.label = labelVal; }
+    if(Object.keys(style).length){ colHeaderStyles[id] = style; } else { delete colHeaderStyles[id]; }
+    saveColHeaderStyles(colHeaderStyles);
+    buildTableHead();
+    renderColorPickerGroups();
+    updateColorpanelCount();
   }else{
     if(document.getElementById("fmt_use_height").checked){
       style.height = Number(document.getElementById("fmt_height").value) || 28;
@@ -718,6 +770,12 @@ function resetFormat(){
       buildTableHead();
       renderColorPickerGroups();
       updateColorpanelCount();
+    }else if(type==="header"){
+      delete colHeaderStyles[id];
+      saveColHeaderStyles(colHeaderStyles);
+      buildTableHead();
+      renderColorPickerGroups();
+      updateColorpanelCount();
     }else{
       delete rowStyles[id];
       saveRowStyles(rowStyles);
@@ -729,8 +787,9 @@ function resetFormat(){
 
 // ------------------------------------------------------------
 // Panel "Atur Warna Kolom" — daftar semua kolom (dikelompokkan sama
-// seperti panel pilih kolom), tiap kolom punya tombol 🎨 (buka modal
-// format) dan tombol ✕ (reset cepat kalau sudah dikustomisasi).
+// seperti panel pilih kolom). Tiap kolom punya dua tombol:
+//   🎨 = format SEL kolom (isi data)   📝 = format HEADER kolom (judul)
+// plus tombol ✕ / ✕H untuk reset cepat kalau sudah dikustomisasi.
 // ------------------------------------------------------------
 function initColorPicker(){
   renderColorPickerGroups();
@@ -747,12 +806,16 @@ function renderColorPickerGroups(){
       <div class="colpick-group-title"><span>${escapeHtml(g)}</span></div>
       <div class="colpick-list">
         ${fields.map(f=>{
-          const custom = !!colStyles[f.key];
+          const customCell = !!colStyles[f.key];
+          const customHeader = !!colHeaderStyles[f.key];
+          const displayLabel = (colHeaderStyles[f.key] && colHeaderStyles[f.key].label) || f.label;
           return `<label style="justify-content:space-between">
-            <span>${custom?"🟢 ":""}${escapeHtml(f.label)}</span>
+            <span>${customCell?"🟢":""}${customHeader?"🔵":""} ${escapeHtml(displayLabel)}</span>
             <span style="display:flex;gap:4px">
-              <button type="button" class="miniBtn" title="Atur format kolom ini" onclick="openColumnFormat('${escapeAttr(f.key)}')">🎨</button>
-              ${custom?`<button type="button" class="miniBtn" title="Hapus format kustom" onclick="clearColumnFormat('${escapeAttr(f.key)}')">✕</button>`:""}
+              <button type="button" class="miniBtn" title="Format sel kolom ini" onclick="openColumnFormat('${escapeAttr(f.key)}')">🎨</button>
+              <button type="button" class="miniBtn" title="Format header kolom ini" onclick="openHeaderFormat('${escapeAttr(f.key)}')">📝</button>
+              ${customCell?`<button type="button" class="miniBtn" title="Hapus format sel" onclick="clearColumnFormat('${escapeAttr(f.key)}')">✕</button>`:""}
+              ${customHeader?`<button type="button" class="miniBtn" title="Hapus format header" onclick="clearHeaderFormat('${escapeAttr(f.key)}')">✕H</button>`:""}
             </span>
           </label>`;
         }).join("")}
@@ -762,7 +825,7 @@ function renderColorPickerGroups(){
 }
 function updateColorpanelCount(){
   const el = document.getElementById("colorpanelCount");
-  if(el) el.textContent = `${Object.keys(colStyles).length} dari ${FIELD_DEFS.length} kolom memiliki format kustom`;
+  if(el) el.textContent = `🟢 ${Object.keys(colStyles).length} kolom (sel) • 🔵 ${Object.keys(colHeaderStyles).length} kolom (header) dari ${FIELD_DEFS.length} kolom dikustomisasi`;
 }
 function clearColumnFormat(key){
   delete colStyles[key];
@@ -771,6 +834,13 @@ function clearColumnFormat(key){
   renderColorPickerGroups();
   updateColorpanelCount();
   renderTable();
+}
+function clearHeaderFormat(key){
+  delete colHeaderStyles[key];
+  saveColHeaderStyles(colHeaderStyles);
+  buildTableHead();
+  renderColorPickerGroups();
+  updateColorpanelCount();
 }
 
 // ============================================================
