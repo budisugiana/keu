@@ -91,12 +91,24 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
 }
 </style>
 
+
+<style id="default-header-wrap">
+/* Semua header default WRAP */
+table thead th,
+table th {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-wrap: wrap;
+}
+</style>
+
 </head>
 <body>
 <div class="app-shell">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark">LSV</div>
+      <div class="brand-mark">IC</div>
       <div>
         <div class="brand-title">ICMS</div>
         <div class="brand-subtitle">Training Management</div>
@@ -1625,6 +1637,52 @@ function money(v){return "Rp "+Number(v||0).toLocaleString("id-ID",{maximumFract
   } else {
     bindDuplicateAll();
   }
+})();
+</script>
+
+
+<script id="default-column-width-settings">
+(function(){
+  function initDefaultColumnWidth(){
+    // Detect by nearby label/text, so this works even if IDs differ.
+    document.querySelectorAll('input[type="checkbox"]').forEach(function(cb){
+      var parent = cb.closest('label, .form-group, .setting-item, .control-group, div');
+      var text = parent ? (parent.innerText || '') : '';
+      if (/aktifkan\s+lebar\s+kolom\s+custom/i.test(text) ||
+          /custom\s+(column\s+)?width/i.test(text)) {
+        cb.checked = true;
+        cb.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+    });
+
+    // Set width inputs connected to "Lebar Kolom" to 75 by default.
+    document.querySelectorAll('input').forEach(function(input){
+      var parent = input.closest('label, .form-group, .setting-item, .control-group, div');
+      var text = parent ? (parent.innerText || '') : '';
+      var hint = ((input.id||'')+' '+(input.name||'')+' '+(input.placeholder||'')).toLowerCase();
+
+      if (/lebar\s+kolom|column\s+width|custom\s+width/.test(text.toLowerCase()) ||
+          /columnwidth|customwidth|column-width/.test(hint)) {
+        if (!input.value || input.value === 'auto' || input.value === '0' || input.value === '100') {
+          input.value = '75';
+          input.dispatchEvent(new Event('input', {bubbles:true}));
+          input.dispatchEvent(new Event('change', {bubbles:true}));
+        }
+      }
+    });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initDefaultColumnWidth);
+  }else{
+    initDefaultColumnWidth();
+  }
+
+  // Re-apply after dynamically generated edit panels appear.
+  var observer = new MutationObserver(function(){
+    initDefaultColumnWidth();
+  });
+  observer.observe(document.documentElement, {childList:true, subtree:true});
 })();
 </script>
 
