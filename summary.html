@@ -80,10 +80,10 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
 <div class="app-shell">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark">LSV</div>
+      <div class="brand-mark">IC</div>
       <div>
-        <div class="brand-title">KARTU KONTROL</div>
-        <div class="brand-subtitle">Budget Monitoring</div>
+        <div class="brand-title">ICMS</div>
+        <div class="brand-subtitle">Training Management</div>
       </div>
     </div>
     <hr>
@@ -483,10 +483,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const btn = e.target.closest("button[data-action]");
     if(!btn) return;
     const action = btn.dataset.action;
-    const rid = btn.dataset.rowid;
-    if(action==="format") openFormat(rid);
-    else if(action==="edit"){ const r = rowDataMap.get(rid); if(r) openEdit(r); }
-    else if(action==="delete") deleteOne(rid);
+    const rk = btn.dataset.rowkey;
+    const r = rowDataMap.get(rk);
+    if(action==="format") openFormat(rk);
+    else if(action==="edit"){ if(r) openEdit(r); }
+    else if(action==="delete"){ if(r) deleteOne(r.id, rk); }
   });
 });
 
@@ -598,12 +599,26 @@ async function loadData(){
   try{
     const result = await apiGet({action:"list"});
     allData = Array.isArray(result.data) ? result.data : [];
+    ensureLocalRowKeys(allData);
     buildFilters();
     applyFilters();
     showAlert(`${allData.length.toLocaleString("id-ID")} data berhasil dimuat.`, "success");
   }catch(err){
     showAlert("Gagal memuat data: "+err.message, "error");
   }
+}
+// Beberapa baris (mis. hasil import Excel, atau data lama) kadang TIDAK punya
+// field "id" yang valid dari backend. Kalau "id" kosong, tombol 🎨 Format Baris
+// tampak terbuka tapi tombol "Terapkan" diam-diam gagal tersimpan (lihat guard
+// di saveFormat()) — ini penyebab baris ke-3 dst dulu "tidak bisa diedit".
+// Di sini setiap baris diberi __rowKey: id asli kalau ada & valid, atau kunci
+// lokal stabil ("local_<index>") kalau tidak — dipakai KHUSUS untuk keperluan
+// format (rowStyles) di sisi klien, bukan dikirim ke backend.
+function ensureLocalRowKeys(list){
+  list.forEach((r,i)=>{
+    const hasRealId = r.id!==undefined && r.id!==null && String(r.id).trim()!=="";
+    r.__rowKey = hasRealId ? String(r.id) : ("local_"+i);
+  });
 }
 
 function buildFilters(){
@@ -655,7 +670,8 @@ function renderTable(){
   const tbody=document.getElementById("tbody");
   const colCount = FIELD_DEFS.length+2;
   tbody.innerHTML = rows.length ? rows.map((r,i)=>{
-    const st = rowStyles[r.id] || {};
+    const rk = r.__rowKey || String(r.id ?? ("local_"+(start+i)));
+    const st = rowStyles[rk] || {};
     const styleParts = [];
     if(st.bg) styleParts.push(`background:${st.bg}`);
     if(st.color) styleParts.push(`color:${st.color}`);
@@ -695,18 +711,21 @@ function renderTable(){
       const cellStyleAttr = cellParts.length ? ` style="${escapeAttr(cellParts.join(";"))}"` : "";
       return `<td data-col="${escapeAttr(f.key)}" class="${cls.join(" ")}"${cellStyleAttr}>${v}</td>`;
     }).join("");
-    return `<tr data-rowid="${escapeAttr(r.id)}"${styleAttr}>
+    return `<tr data-rowkey="${escapeAttr(rk)}"${styleAttr}>
       <td class="sticky-col"${styleAttr}>${start+i+1}</td>
       ${cells}
       <td class="sticky-col"${styleAttr}>
-        <button class="icon-btn format" title="Format baris (warna, ukuran teks, bold, tinggi)" data-action="format" data-rowid="${escapeAttr(r.id)}">🎨</button>
-        <button class="icon-btn edit" data-action="edit" data-rowid="${escapeAttr(r.id)}">✏️</button>
-        <button class="icon-btn delete" data-action="delete" data-rowid="${escapeAttr(r.id)}">🗑️</button>
+        <button class="icon-btn format" title="Format baris (warna, ukuran teks, bold, tinggi)" data-action="format" data-rowkey="${escapeAttr(rk)}">🎨</button>
+        <button class="icon-btn edit" data-action="edit" data-rowkey="${escapeAttr(rk)}">✏️</button>
+        <button class="icon-btn delete" data-action="delete" data-rowkey="${escapeAttr(rk)}">🗑️</button>
       </td>
     </tr>`;
   }).join("") : `<tr><td colspan="${colCount}" style="padding:20px;color:#4b6f6a">Tidak ada data untuk filter saat ini.</td></tr>`;
   rowDataMap.clear();
-  rows.forEach(r=>rowDataMap.set(String(r.id), r));
+  rows.forEach((r,i)=>{
+    const rk = r.__rowKey || String(r.id ?? ("local_"+(start+i)));
+    rowDataMap.set(rk, r);
+  });
   document.getElementById("pageInfo").textContent=`Menampilkan ${filteredData.length?start+1:0}–${end} dari ${filteredData.length.toLocaleString("id-ID")} data • Halaman ${currentPage}`;
   document.getElementById("prevBtn").disabled=currentPage<=1;
   document.getElementById("nextBtn").disabled=end>=filteredData.length;
@@ -810,7 +829,7 @@ function toggleFmtField(checkboxId, fieldId){
 function saveFormat(){
   const type = document.getElementById("fmt_type").value;
   const id = document.getElementById("fmt_id").value;
-  if(!id) return;
+  if(!id){ showAlert("Gagal menyimpan format: baris/kolom ini tidak punya kunci yang valid.","error"); return; }
 
   const style = {};
   if(document.getElementById("fmt_use_bg").checked){
@@ -974,9 +993,13 @@ function renderHeaderEditGroups(){
       <div style="display:flex;flex-direction:column;gap:6px">
         ${fields.map(f=>{
           const hs = colHeaderStyles[f.key] || {};
+          const cs = colStyles[f.key] || {};
           return `<div class="fmt-row" style="align-items:center">
             <span style="min-width:170px;max-width:170px;font-weight:400;color:var(--text)" title="${escapeAttr(f.key)}">${escapeHtml(f.label)}</span>
             <input type="text" data-headerkey="${escapeAttr(f.key)}" value="${escapeAttr(hs.label || "")}" placeholder="${escapeAttr(f.label)}" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px">
+            <label style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted);white-space:nowrap">
+              <input type="checkbox" data-wrapkey="${escapeAttr(f.key)}" ${cs.wrap ? "checked" : ""}> Wrap
+            </label>
           </div>`;
         }).join("")}
       </div>
@@ -995,20 +1018,33 @@ function saveHeaderEdits(){
     if(val){ hs.label = val; } else { delete hs.label; }
     if(Object.keys(hs).length){ colHeaderStyles[key] = hs; } else { delete colHeaderStyles[key]; }
   });
+  document.querySelectorAll("#headerEditGroups input[data-wrapkey]").forEach(chk=>{
+    const key = chk.dataset.wrapkey;
+    const cs = { ...(colStyles[key] || {}) };
+    if(chk.checked){ cs.wrap = true; } else { delete cs.wrap; }
+    if(Object.keys(cs).length){ colStyles[key] = cs; } else { delete colStyles[key]; }
+  });
   saveColHeaderStyles(colHeaderStyles);
+  saveColStyles(colStyles);
   buildTableHead();
   renderColorPickerGroups();
   updateColorpanelCount();
   closeHeaderEditModal();
+  renderTable();
   showAlert("Header kolom & judul tabel berhasil disimpan.", "success");
 }
 function resetAllHeaderEdits(){
-  if(!confirm("Reset SEMUA alias header kolom & judul tabel ke default?")) return;
+  if(!confirm("Reset SEMUA alias header kolom, wrap text, & judul tabel ke default?")) return;
   Object.keys(colHeaderStyles).forEach(key=>{
     delete colHeaderStyles[key].label;
     if(!Object.keys(colHeaderStyles[key]).length) delete colHeaderStyles[key];
   });
+  Object.keys(colStyles).forEach(key=>{
+    delete colStyles[key].wrap;
+    if(!Object.keys(colStyles[key]).length) delete colStyles[key];
+  });
   saveColHeaderStyles(colHeaderStyles);
+  saveColStyles(colStyles);
   tableTitle = DEFAULT_TABLE_TITLE;
   saveTableTitle(tableTitle);
   applyTableTitle();
@@ -1017,6 +1053,7 @@ function resetAllHeaderEdits(){
   buildTableHead();
   renderColorPickerGroups();
   updateColorpanelCount();
+  renderTable();
 }
 
 // ============================================================
@@ -1127,11 +1164,12 @@ async function saveData(e){
     closeModal(); await loadData();
   }catch(err){showAlert("Gagal menyimpan: "+err.message,"error")}
 }
-async function deleteOne(id){
+async function deleteOne(id, rowKey){
   if(!confirm("Hapus data ini?"))return;
   try{
     await apiPost({action:"delete",id});
-    delete rowStyles[id]; saveRowStyles(rowStyles);
+    const key = rowKey || id;
+    delete rowStyles[key]; saveRowStyles(rowStyles);
     await loadData();
   }catch(err){showAlert("Gagal menghapus: "+err.message,"error")}
 }
