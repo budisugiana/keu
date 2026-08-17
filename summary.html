@@ -249,6 +249,26 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
       </div>
     </div>
 
+    <div class="form-section" id="fmt_align_section">
+      <div class="form-section-title">Perataan Teks</div>
+      <div class="fmt-row">
+        <span>Rata teks</span>
+        <select id="fmt_align" style="margin-left:auto;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px">
+          <option value="">Default</option>
+          <option value="left">⬅️ Kiri</option>
+          <option value="center">↔️ Tengah</option>
+          <option value="right">➡️ Kanan</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section" id="fmt_wrap_section">
+      <div class="form-section-title">Wrap Text</div>
+      <div class="fmt-row">
+        <input type="checkbox" id="fmt_wrap"> Bungkus teks otomatis (wrap) di kolom ini
+      </div>
+    </div>
+
     <div class="form-section" id="fmt_width_section">
       <div class="form-section-title">Lebar Kolom</div>
       <div class="fmt-row">
@@ -601,13 +621,17 @@ function renderTable(){
         bg: colSt.bg !== undefined ? (bgConflict ? darkenHex(colSt.bg) : colSt.bg) : st.bg,
         color: colSt.color !== undefined ? (colorConflict ? darkenHex(colSt.color) : colSt.color) : st.color,
         size: colSt.size !== undefined ? colSt.size : st.size,
-        bold: colSt.bold !== undefined ? colSt.bold : st.bold
+        bold: colSt.bold !== undefined ? colSt.bold : st.bold,
+        align: colSt.align !== undefined ? colSt.align : st.align,
+        wrap: colSt.wrap
       };
       const cellParts = [];
       if(merged.bg) cellParts.push(`background:${merged.bg}`);
       if(merged.color) cellParts.push(`color:${merged.color}`);
       if(merged.size) cellParts.push(`font-size:${merged.size}px`);
       if(merged.bold) cellParts.push(`font-weight:700`);
+      if(merged.align) cellParts.push(`text-align:${merged.align}`);
+      if(merged.wrap) cellParts.push(`white-space:normal;word-break:break-word`);
       if(st.height) cellParts.push(`height:${st.height}px`);
       if(colSt.width) cellParts.push(`width:${colSt.width}px;min-width:${colSt.width}px;max-width:${colSt.width}px;overflow:hidden;text-overflow:ellipsis`);
       const cellStyleAttr = cellParts.length ? ` style="${escapeAttr(cellParts.join(";"))}"` : "";
@@ -653,6 +677,8 @@ function openFormat(id){
   document.getElementById("fmt_width_section").classList.add("hidden");
   document.getElementById("fmt_height_section").classList.remove("hidden");
   document.getElementById("fmt_label_section").classList.add("hidden");
+  document.getElementById("fmt_align_section").classList.remove("hidden");
+  document.getElementById("fmt_wrap_section").classList.add("hidden");
   document.getElementById("fmt_id").value = id;
   document.getElementById("formatModal").classList.remove("hidden");
 }
@@ -664,6 +690,8 @@ function openColumnFormat(key){
   document.getElementById("fmt_width_section").classList.remove("hidden");
   document.getElementById("fmt_height_section").classList.add("hidden");
   document.getElementById("fmt_label_section").classList.add("hidden");
+  document.getElementById("fmt_align_section").classList.remove("hidden");
+  document.getElementById("fmt_wrap_section").classList.remove("hidden");
   document.getElementById("fmt_id").value = key;
   document.getElementById("formatModal").classList.remove("hidden");
 }
@@ -676,6 +704,8 @@ function openHeaderFormat(key){
   document.getElementById("fmt_width_section").classList.add("hidden");
   document.getElementById("fmt_height_section").classList.add("hidden");
   document.getElementById("fmt_label_section").classList.remove("hidden");
+  document.getElementById("fmt_align_section").classList.add("hidden");
+  document.getElementById("fmt_wrap_section").classList.add("hidden");
   document.getElementById("fmt_label").value = hs.label || "";
   document.getElementById("fmt_id").value = key;
   document.getElementById("formatModal").classList.remove("hidden");
@@ -697,6 +727,9 @@ function fillFormatFields(s){
   document.getElementById("fmt_size").disabled = !hasSize;
 
   document.getElementById("fmt_bold").checked = !!s.bold;
+
+  document.getElementById("fmt_align").value = s.align || "";
+  document.getElementById("fmt_wrap").checked = !!s.wrap;
 
   const hasWidth = s.width !== undefined;
   document.getElementById("fmt_use_width").checked = hasWidth;
@@ -732,10 +765,17 @@ function saveFormat(){
   if(document.getElementById("fmt_bold").checked){
     style.bold = true;
   }
+  if(type!=="header"){
+    const alignVal = document.getElementById("fmt_align").value;
+    if(alignVal){ style.align = alignVal; }
+  }
 
   if(type==="col"){
     if(document.getElementById("fmt_use_width").checked){
       style.width = Number(document.getElementById("fmt_width").value) || 120;
+    }
+    if(document.getElementById("fmt_wrap").checked){
+      style.wrap = true;
     }
     if(Object.keys(style).length){ colStyles[id] = style; } else { delete colStyles[id]; }
     saveColStyles(colStyles);
