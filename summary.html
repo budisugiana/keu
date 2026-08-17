@@ -137,10 +137,11 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
     </section>
 
     <div class="section-title">
-      <span>📋 Data Summary</span>
+      <span id="tableTitleText">📋 Data Summary</span>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn teal" onclick="toggleColumnPanel()" id="colPanelToggleBtn">🧮 Pilih Kolom yang Ditampilkan</button>
         <button class="btn purple" onclick="toggleColorPanel()" id="colorPanelToggleBtn">🎨 Atur Warna Kolom</button>
+        <button class="btn orange" onclick="openHeaderEditModal()" id="headerEditToggleBtn">✏️ Edit Header &amp; Judul Tabel</button>
       </div>
     </div>
 
@@ -302,6 +303,36 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
   </div>
 </div>
 
+<!-- Modal Edit Header Kolom & Judul Tabel — menu khusus untuk mengganti nama alias
+     tiap kolom sekaligus, dan mengganti judul yang tampil di atas tabel. Dibuka dari
+     tombol "✏️ Edit Header & Judul Tabel" di sebelah tombol Atur Warna Kolom. -->
+<div id="headerEditModal" class="modal-overlay hidden">
+  <div class="modal-box" style="width:min(700px,96vw)">
+    <div class="modal-title">✏️ Edit Header Kolom &amp; Judul Tabel</div>
+
+    <div class="form-section">
+      <div class="form-section-title">Judul Tabel</div>
+      <div class="fmt-row">
+        <input type="text" id="tableTitleInput" placeholder="cth: 📋 Data Summary" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Alias Nama Header per Kolom</div>
+      <div class="colpanel-toolbar">
+        <span class="colpanel-count">Kosongkan kolom untuk memakai nama asli.</span>
+      </div>
+      <div class="colpick-groups" id="headerEditGroups" style="max-height:400px"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn primary" type="button" onclick="saveHeaderEdits()">💾 Simpan</button>
+      <button class="btn orange" type="button" onclick="resetAllHeaderEdits()">↺ Reset Semua ke Default</button>
+      <button class="btn gray" type="button" onclick="closeHeaderEditModal()">Batal</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // KONFIGURASI API — SAMA DENGAN halaman lain (satu API, tabel berbeda)
@@ -424,13 +455,40 @@ function loadColHeaderStyles(){
 function saveColHeaderStyles(obj){
   localStorage.setItem(COL_HEADER_STYLES_KEY, JSON.stringify(obj));
 }
+const TABLE_TITLE_KEY = "icms_summary_table_title";
+const DEFAULT_TABLE_TITLE = "📋 Data Summary";
+function loadTableTitle(){
+  try{
+    const raw = localStorage.getItem(TABLE_TITLE_KEY);
+    return raw && raw.trim() ? raw : DEFAULT_TABLE_TITLE;
+  }catch(e){ return DEFAULT_TABLE_TITLE; }
+}
+function saveTableTitle(v){
+  localStorage.setItem(TABLE_TITLE_KEY, v);
+}
 
 let visibleCols = loadVisibleCols();
 let rowStyles = loadRowStyles();
 let colStyles = loadColStyles();
 let colHeaderStyles = loadColHeaderStyles();
+let tableTitle = loadTableTitle();
+const rowDataMap = new Map(); // lookup id->row saat ini di halaman, dipakai oleh event delegation tombol Aksi
 
-document.addEventListener("DOMContentLoaded", ()=>{ initAuthUI(); buildForm(); buildTableHead(); initColumnPicker(); initColorPicker(); loadData(); });
+document.addEventListener("DOMContentLoaded", ()=>{
+  initAuthUI(); buildForm(); buildTableHead(); initColumnPicker(); initColorPicker(); applyTableTitle(); loadData();
+  // Event delegation untuk tombol Aksi (🎨/✏️/🗑️) di tiap baris — dipasang SEKALI di tbody,
+  // bukan inline onclick per baris, supaya karakter aneh (kutip, dsb) di data tidak pernah
+  // merusak HTML baris lain (penyebab tombol baris ke-3 dst dulu bisa "tidak berfungsi").
+  document.getElementById("tbody").addEventListener("click", (e)=>{
+    const btn = e.target.closest("button[data-action]");
+    if(!btn) return;
+    const action = btn.dataset.action;
+    const rid = btn.dataset.rowid;
+    if(action==="format") openFormat(rid);
+    else if(action==="edit"){ const r = rowDataMap.get(rid); if(r) openEdit(r); }
+    else if(action==="delete") deleteOne(rid);
+  });
+});
 
 // ============================================================
 // AUTH: session token, tampilan user, logout
@@ -641,12 +699,14 @@ function renderTable(){
       <td class="sticky-col"${styleAttr}>${start+i+1}</td>
       ${cells}
       <td class="sticky-col"${styleAttr}>
-        <button class="icon-btn format" title="Format baris (warna, ukuran teks, bold, tinggi)" onclick="openFormat('${escapeAttr(r.id)}')">🎨</button>
-        <button class="icon-btn edit" onclick='openEdit(${JSON.stringify(r).replace(/'/g,"&#39;")})'>✏️</button>
-        <button class="icon-btn delete" onclick="deleteOne('${escapeAttr(r.id)}')">🗑️</button>
+        <button class="icon-btn format" title="Format baris (warna, ukuran teks, bold, tinggi)" data-action="format" data-rowid="${escapeAttr(r.id)}">🎨</button>
+        <button class="icon-btn edit" data-action="edit" data-rowid="${escapeAttr(r.id)}">✏️</button>
+        <button class="icon-btn delete" data-action="delete" data-rowid="${escapeAttr(r.id)}">🗑️</button>
       </td>
     </tr>`;
   }).join("") : `<tr><td colspan="${colCount}" style="padding:20px;color:#4b6f6a">Tidak ada data untuk filter saat ini.</td></tr>`;
+  rowDataMap.clear();
+  rows.forEach(r=>rowDataMap.set(String(r.id), r));
   document.getElementById("pageInfo").textContent=`Menampilkan ${filteredData.length?start+1:0}–${end} dari ${filteredData.length.toLocaleString("id-ID")} data • Halaman ${currentPage}`;
   document.getElementById("prevBtn").disabled=currentPage<=1;
   document.getElementById("nextBtn").disabled=end>=filteredData.length;
@@ -878,6 +938,82 @@ function clearColumnFormat(key){
 function clearHeaderFormat(key){
   delete colHeaderStyles[key];
   saveColHeaderStyles(colHeaderStyles);
+  buildTableHead();
+  renderColorPickerGroups();
+  updateColorpanelCount();
+}
+
+// ============================================================
+// FITUR 4: Menu khusus "Edit Header Kolom & Judul Tabel"
+// ------------------------------------------------------------
+// Terpisah dari panel "Atur Warna Kolom" — di sini pengguna bisa
+// langsung ganti alias nama SEMUA header kolom sekaligus (tanpa
+// buka modal Format satu-satu) dan ganti judul yang tampil di atas
+// tabel. Alias header tetap disimpan di colHeaderStyles[key].label
+// (localStorage) supaya tetap sinkron dengan panel Atur Warna Kolom.
+// Judul tabel disimpan terpisah di TABLE_TITLE_KEY (localStorage).
+// ============================================================
+function applyTableTitle(){
+  const el = document.getElementById("tableTitleText");
+  if(el) el.textContent = tableTitle || DEFAULT_TABLE_TITLE;
+}
+function openHeaderEditModal(){
+  document.getElementById("tableTitleInput").value = tableTitle || "";
+  renderHeaderEditGroups();
+  document.getElementById("headerEditModal").classList.remove("hidden");
+}
+function closeHeaderEditModal(){
+  document.getElementById("headerEditModal").classList.add("hidden");
+}
+function renderHeaderEditGroups(){
+  const wrap = document.getElementById("headerEditGroups");
+  wrap.innerHTML = GROUPS.map(g=>{
+    const fields = FIELD_DEFS.filter(f=>f.group===g);
+    return `<div class="colpick-group">
+      <div class="colpick-group-title">${escapeHtml(g)}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${fields.map(f=>{
+          const hs = colHeaderStyles[f.key] || {};
+          return `<div class="fmt-row" style="align-items:center">
+            <span style="min-width:170px;max-width:170px;font-weight:400;color:var(--text)" title="${escapeAttr(f.key)}">${escapeHtml(f.label)}</span>
+            <input type="text" data-headerkey="${escapeAttr(f.key)}" value="${escapeAttr(hs.label || "")}" placeholder="${escapeAttr(f.label)}" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px">
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+  }).join("");
+}
+function saveHeaderEdits(){
+  tableTitle = document.getElementById("tableTitleInput").value.trim() || DEFAULT_TABLE_TITLE;
+  saveTableTitle(tableTitle);
+  applyTableTitle();
+
+  document.querySelectorAll("#headerEditGroups input[data-headerkey]").forEach(inp=>{
+    const key = inp.dataset.headerkey;
+    const val = inp.value.trim();
+    const hs = { ...(colHeaderStyles[key] || {}) };
+    if(val){ hs.label = val; } else { delete hs.label; }
+    if(Object.keys(hs).length){ colHeaderStyles[key] = hs; } else { delete colHeaderStyles[key]; }
+  });
+  saveColHeaderStyles(colHeaderStyles);
+  buildTableHead();
+  renderColorPickerGroups();
+  updateColorpanelCount();
+  closeHeaderEditModal();
+  showAlert("Header kolom & judul tabel berhasil disimpan.", "success");
+}
+function resetAllHeaderEdits(){
+  if(!confirm("Reset SEMUA alias header kolom & judul tabel ke default?")) return;
+  Object.keys(colHeaderStyles).forEach(key=>{
+    delete colHeaderStyles[key].label;
+    if(!Object.keys(colHeaderStyles[key]).length) delete colHeaderStyles[key];
+  });
+  saveColHeaderStyles(colHeaderStyles);
+  tableTitle = DEFAULT_TABLE_TITLE;
+  saveTableTitle(tableTitle);
+  applyTableTitle();
+  renderHeaderEditGroups();
+  document.getElementById("tableTitleInput").value = tableTitle;
   buildTableHead();
   renderColorPickerGroups();
   updateColorpanelCount();
