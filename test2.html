@@ -23,6 +23,10 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-funnel@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4"></script>
 
 <style>
 :root{
@@ -41,7 +45,11 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-ser
 .filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.filters select,.filters input{padding:7px 9px;border-radius:6px;border:1px solid var(--border);font-size:11px;background:#f0faf8;color:var(--text);min-width:140px}.filters input{min-width:250px;flex:1}
 .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.btn{cursor:pointer;border:0;border-radius:7px;padding:7px 12px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px}.btn:hover{opacity:.86}.primary{background:var(--accent);color:#fff}.gray{background:#94a3b8;color:#fff}.cyan{background:#67e8f9;color:#004d4d}.purple{background:#7c3aed;color:#fff}.red{background:#ef4444;color:#fff}.orange{background:#ea580c;color:#fff}.teal{background:#0d9488;color:#fff}
 #alert{margin-top:8px;font-size:11px;white-space:pre-wrap}
-.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:12px 0}.card{background:#fff;border:1px solid var(--border);border-radius:11px;padding:13px 15px;box-shadow:0 2px 8px rgba(0,116,116,.08)}.label{font-size:11px;color:var(--muted)}.value{font-size:21px;font-weight:700;color:var(--dark);margin-top:2px}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:12px 0}.card{background:#fff;border:1px solid var(--border);border-radius:11px;padding:13px 15px;box-shadow:0 2px 8px rgba(0,116,116,.08);position:relative}.label{font-size:11px;color:var(--muted);padding-right:44px}.value{font-size:21px;font-weight:700;color:var(--dark);margin-top:2px}
+.card-actions{position:absolute;top:8px;right:8px;display:flex;gap:4px}
+.card-actions button{width:20px;height:20px;border:0;border-radius:5px;background:#eef7f5;cursor:pointer;font-size:10px;color:var(--dark);line-height:1}
+.card-actions button:hover{background:#dcf0ec}
+.scorecard-empty-state{border:1.5px dashed var(--border);border-radius:12px;padding:24px 14px;text-align:center;color:var(--muted);font-size:12px;background:#f7fdfc;margin:12px 0}
 
 /* ==== Kartu per paket tabel (meniru referensi "FINANCIAL DETAIL") ==== */
 .packet-card{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 4px 14px rgba(0,116,116,.08);margin:22px 0;overflow:hidden}
@@ -96,6 +104,30 @@ th.sticky-col,td.sticky-col{position:sticky;left:0;z-index:1;background:#fff}th.
 .colpick-group-title{font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
 .colpick-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px}
 .colpick-list label{font-size:10.5px;display:flex;align-items:center;gap:5px;color:var(--text)}
+
+/* ==== Panel "Atur Urutan Kolom" — list vertikal, jauh lebih mudah dipakai
+   daripada menyeret <th> yang kecil & lengket di tabel ==== */
+.colorder-search{width:100%;border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:11.5px;margin-bottom:9px;background:#f7fdfc;color:var(--text)}
+.colorder-list{display:flex;flex-direction:column;gap:5px;max-height:52vh;overflow:auto;padding:2px}
+.colorder-item{display:flex;align-items:center;gap:8px;background:#f7fdfc;border:1px solid #cfe9e4;border-radius:8px;padding:7px 9px;cursor:grab;transition:box-shadow .12s,border-color .12s,background .12s}
+.colorder-item:active{cursor:grabbing}
+.colorder-item.dragging{opacity:.4}
+.colorder-item.drag-over-top{box-shadow:inset 0 3px 0 var(--accent)}
+.colorder-item.drag-over-bottom{box-shadow:inset 0 -3px 0 var(--accent)}
+.colorder-item .drag-handle{font-size:15px;color:var(--muted);letter-spacing:-2px;user-select:none;flex-shrink:0}
+.colorder-idx{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:var(--mid);color:#fff;font-size:9.5px;font-weight:700;display:grid;place-items:center}
+.colorder-name{flex:1;min-width:0;font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.colorder-name .colorder-group{display:block;font-size:9px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+.colorder-item.col-hidden-item{opacity:.5}
+.colorder-item.col-hidden-item .colorder-name{font-style:italic}
+.colorder-badge{flex-shrink:0;font-size:8.5px;font-weight:700;padding:2px 6px;border-radius:20px;background:#eef7f5;color:var(--muted)}
+.colorder-moves{display:flex;gap:3px;flex-shrink:0}
+.colorder-moves button{width:24px;height:24px;border:1px solid var(--border);background:#fff;border-radius:5px;cursor:pointer;font-size:11px;line-height:1;color:var(--dark)}
+.colorder-moves button:disabled{opacity:.3;cursor:not-allowed}
+.colorder-moves button:hover:not(:disabled){background:#eef7f5}
+
+/* ==== Badge sumber sheet & tombol muat ulang untuk tabel dari sheet lain ==== */
+.source-badge{flex-shrink:0;font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;background:#fff3e6;color:#c2560c;border:1px solid #f3c89a;text-transform:none;letter-spacing:0}
 .miniBtn{font-size:9.5px;padding:2px 7px;border-radius:5px;border:0;cursor:pointer;background:#e2f4f0;color:var(--dark);font-weight:700}
 @media(max-width:900px){.sidebar{width:210px}.main{margin-left:210px;padding:14px}.filters input{min-width:180px}.form-grid{grid-template-columns:repeat(2,1fr)}.form-grid.months{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:650px){.sidebar{position:static;width:100%;height:auto}.app-shell{display:block}.sidebar-bottom{position:static;margin-top:15px}.main{margin-left:0}.form-grid{grid-template-columns:1fr}.form-grid.months{grid-template-columns:repeat(2,1fr)}.full{grid-column:auto}.hero h1{font-size:19px}.packet-header{flex-direction:column;align-items:flex-start}}
@@ -106,6 +138,9 @@ th[data-col].dragging-col{opacity:.4}
 th[data-col].col-drag-over{outline:2px dashed #FF8A3D;outline-offset:-2px}
 
 .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;margin:14px 0 6px}
+.chart-row{margin:0 0 6px}
+.chart-row-label{font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 6px}
+.chart-row:first-child .chart-row-label{margin-top:0}
 .chart-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:13px 14px;box-shadow:0 2px 8px rgba(0,116,116,.08);display:flex;flex-direction:column}
 .chart-card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
 .chart-card-title{font-weight:700;color:var(--dark);font-size:13px;line-height:1.3}
@@ -172,12 +207,13 @@ table thead th, table th{white-space:normal!important;overflow-wrap:anywhere;wor
       <div id="alert"></div>
     </section>
 
-    <section class="summary">
-      <div class="card"><div class="label">Jumlah Unit</div><div class="value" id="sumUnit">0</div></div>
-      <div class="card"><div class="label">Total Target IDR</div><div class="value" id="sumTarget">Rp 0</div></div>
-      <div class="card"><div class="label">Total Realisasi H-1</div><div class="value" id="sumRealisasi">Rp 0</div></div>
-      <div class="card"><div class="label">Total Proyeksi Next Month</div><div class="value" id="sumProyeksi">Rp 0</div></div>
-    </section>
+    <div class="section-title" style="margin-top:0">
+      <span>🧾 Scorecard</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn primary" onclick="openScorecardModal()">➕ Tambah Scorecard</button>
+      </div>
+    </div>
+    <div id="scorecardsContainer"></div>
 
     <div class="section-title">
       <span>📈 Grafik</span>
@@ -281,6 +317,21 @@ table thead th, table th{white-space:normal!important;overflow-wrap:anywhere;wor
       </div>
     </div>
 
+    <div class="form-section" id="fmt_dataformat_section">
+      <div class="form-section-title">Format Tampilan Data</div>
+      <div class="fmt-row">
+        <span>Tampilkan sebagai</span>
+        <select id="fmt_dataformat" style="margin-left:auto;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px">
+          <option value="">Default (sesuai tipe kolom)</option>
+          <option value="text">🔤 Teks apa adanya</option>
+          <option value="number">🔢 Angka bulat (ribuan)</option>
+          <option value="decimal2">🔢 Angka desimal (2 digit)</option>
+          <option value="money">💰 Rp Rupiah</option>
+          <option value="percent">％ Persen (%)</option>
+        </select>
+      </div>
+    </div>
+
     <div class="form-section" id="fmt_wrap_section">
       <div class="form-section-title">Wrap Text</div>
       <div class="fmt-row">
@@ -321,17 +372,140 @@ table thead th, table th{white-space:normal!important;overflow-wrap:anywhere;wor
   </div>
 </div>
 
+<!-- Modal Tambah/Edit Scorecard — nilai selalu dihitung dari filteredData (data + filter global saat ini) -->
+<div id="scorecardModal" class="modal-overlay hidden">
+  <div class="modal-box" style="width:min(560px,96vw)">
+    <div class="modal-title" id="scorecardModalTitle">🧾 Tambah Scorecard</div>
+    <input type="hidden" id="sc_id">
+
+    <div class="form-section">
+      <div class="form-section-title">Judul Scorecard</div>
+      <div class="fmt-row">
+        <span style="font-size:16px">🔖</span>
+        <input type="text" id="sc_icon" maxlength="2" placeholder="🔖" style="width:44px;text-align:center;border:1px solid var(--border);border-radius:6px;padding:6px;font-size:14px" title="Emoji ikon (opsional)">
+        <input type="text" id="sc_title" placeholder="cth: Total Realisasi Full Year" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Kolom Data Sumber</div>
+      <div class="fmt-row">
+        <select id="sc_field" onchange="onScorecardFieldChange()" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%"></select>
+      </div>
+    </div>
+
+    <div class="form-section" id="sc_agg_section">
+      <div class="form-section-title">Cara Menghitung (Agregasi)</div>
+      <div class="fmt-row">
+        <select id="sc_agg" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%">
+          <option value="sum">➕ Total (SUM)</option>
+          <option value="avg">📐 Rata-rata (AVERAGE)</option>
+          <option value="min">⬇️ Minimum</option>
+          <option value="max">⬆️ Maximum</option>
+          <option value="count">🔢 Jumlah Baris Terisi (COUNT)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Format Tampilan</div>
+      <div class="fmt-row">
+        <select id="sc_format" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%">
+          <option value="money">Rp Rupiah</option>
+          <option value="number">Angka biasa</option>
+          <option value="percent">Persen (%)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Warna Scorecard</div>
+      <div class="fmt-row">
+        <span>Warna latar (background) kartu</span>
+        <div class="hex-color-control">
+          <input type="color" id="sc_bgColor" class="color-input" oninput="syncColorHex('sc_bgColor','sc_bgColor_hex')">
+          <input type="text" id="sc_bgColor_hex" class="hex-input" maxlength="7" placeholder="#RRGGBB" oninput="syncHexColor('sc_bgColor_hex','sc_bgColor')">
+        </div>
+      </div>
+      <div class="color-recommendations" id="sc_bgColor_recs"></div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Warna Teks</div>
+      <div class="fmt-row">
+        <span>Warna judul &amp; nilai scorecard</span>
+        <div class="hex-color-control">
+          <input type="color" id="sc_textColor" class="color-input" oninput="syncColorHex('sc_textColor','sc_textColor_hex')">
+          <input type="text" id="sc_textColor_hex" class="hex-input" maxlength="7" placeholder="#RRGGBB" oninput="syncHexColor('sc_textColor_hex','sc_textColor')">
+        </div>
+      </div>
+      <div class="color-recommendations" id="sc_textColor_recs"></div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Ukuran Teks &amp; Scorecard</div>
+      <div class="fmt-row" style="margin-bottom:8px">
+        <span>Ukuran teks nilai (angka)</span>
+        <input type="number" id="sc_valueSize" min="10" max="48" step="1" style="margin-left:auto;width:70px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px">
+        <span class="fmt-unit">px</span>
+      </div>
+      <div class="fmt-row" style="margin-bottom:8px">
+        <span>Ukuran teks judul (label)</span>
+        <input type="number" id="sc_labelSize" min="8" max="24" step="1" style="margin-left:auto;width:70px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px">
+        <span class="fmt-unit">px</span>
+      </div>
+      <div class="fmt-row">
+        <span>Ukuran kartu scorecard</span>
+        <select id="sc_cardSize" style="margin-left:auto;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px">
+          <option value="sm">Kecil</option>
+          <option value="md">Sedang (Default)</option>
+          <option value="lg">Besar</option>
+          <option value="xl">Sangat Besar</option>
+        </select>
+      </div>
+      <div style="margin-top:10px">
+        <button class="miniBtn" type="button" onclick="resetScorecardStyle()">↺ Reset Tampilan ke Default</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn primary" type="button" onclick="saveScorecardModal()">💾 Simpan Scorecard</button>
+      <button class="btn gray" type="button" onclick="closeScorecardModal()">Batal</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Tambah Tabel Baru — membuat kartu paket tabel baru dari sheet yang sama -->
 <div id="addTableModal" class="modal-overlay hidden">
   <div class="modal-box" style="width:min(560px,96vw)">
     <div class="modal-title">➕ Tambah Tabel Baru</div>
+
+    <div class="form-section">
+      <div class="form-section-title">Sumber Data</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--text)">
+          <input type="radio" name="newTableSource" value="summary" checked onchange="onNewTableSourceChange()">
+          📊 Data Ringkasan (sheet "summary") — pilih grup kolom seperti biasa
+        </label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--text)">
+          <input type="radio" name="newTableSource" value="sheet" onchange="onNewTableSourceChange()">
+          🗂️ Sheet lain dari Code.gs (mis. rencana_kelas, rekap_program, dll.)
+        </label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--text)">
+          <input type="radio" name="newTableSource" value="duplicate" onchange="onNewTableSourceChange()">
+          📄 Duplikat tabel yang sudah ada di halaman ini
+        </label>
+      </div>
+    </div>
+
     <div class="form-section">
       <div class="form-section-title">Judul Tabel</div>
       <div class="fmt-row">
         <input type="text" id="newTable_title" placeholder="cth: Analisis Khusus Divisi X" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%">
       </div>
     </div>
-    <div class="form-section">
+
+    <div class="form-section" id="newTableGroupsSection">
       <div class="form-section-title">Kolom Awal yang Ditampilkan</div>
       <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Pilih grup kolom yang ingin ditampilkan pertama kali. Bisa diubah/ditambah lagi kapan saja lewat "Pilih Kolom yang Ditampilkan" pada tabel setelah dibuat. Kosongkan semua = tampilkan semua kolom.</div>
       <div class="colpanel-toolbar">
@@ -340,6 +514,19 @@ table thead th, table th{white-space:normal!important;overflow-wrap:anywhere;wor
       </div>
       <div class="colpick-groups" id="newTableGroups" style="max-height:260px"></div>
     </div>
+
+    <div class="form-section hidden" id="newTableSheetSection">
+      <div class="form-section-title">Pilih Sheet</div>
+      <select id="newTable_sheet" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:12px;background:#f7fdfc;color:var(--text)"></select>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px">💡 Kolom tabel akan otomatis mengikuti kolom yang ada di sheet tersebut (tidak perlu diketik manual). Tabel ini bersifat <b>tampilan/baca-saja</b> — tombol ✏️ Edit &amp; 🗑️ Hapus baris tidak berlaku untuk sheet selain "summary", tapi kolom tetap bisa disembunyikan/diurutkan/diberi warna seperti tabel lain. Pakai tombol "🔄 Muat Ulang" pada kartu tabel untuk menyegarkan datanya.</div>
+    </div>
+
+    <div class="form-section hidden" id="newTableDuplicateSection">
+      <div class="form-section-title">Pilih Tabel untuk Diduplikat</div>
+      <select id="newTable_duplicateFrom" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:12px;background:#f7fdfc;color:var(--text)"></select>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px">💡 Semua pengaturan tabel sumber (kolom yang ditampilkan, urutan kolom, warna, alias header) akan disalin persis ke tabel baru. Kedua tabel akan tetap independen setelah dibuat — perubahan di satu tabel tidak akan mempengaruhi tabel lainnya.</div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn primary" type="button" onclick="saveAddTableModal()">💾 Buat Tabel</button>
       <button class="btn gray" type="button" onclick="closeAddTableModal()">Batal</button>
@@ -361,23 +548,88 @@ table thead th, table th{white-space:normal!important;overflow-wrap:anywhere;wor
     </div>
 
     <div class="form-section">
-      <div class="form-section-title">Tipe Grafik</div>
+      <div class="form-section-title">Baris Grafik</div>
       <div class="fmt-row">
-        <select id="chart_type" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%">
-          <option value="bar">📊 Batang (Vertikal)</option>
-          <option value="barh">📊 Batang (Horizontal)</option>
-          <option value="line">📈 Garis</option>
-          <option value="pie">🥧 Pie</option>
-          <option value="doughnut">🍩 Donut</option>
+        <span>Taruh di baris grafik ke-</span>
+        <select id="chart_row" style="margin-left:auto;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px">
+          <option value="1">Baris 1</option>
+          <option value="2">Baris 2</option>
+          <option value="3">Baris 3</option>
+          <option value="4">Baris 4</option>
+          <option value="5">Baris 5</option>
         </select>
       </div>
     </div>
 
     <div class="form-section">
-      <div class="form-section-title">Kolom Label (Sumbu X / Kategori)</div>
+      <div class="form-section-title">Tipe Grafik</div>
       <div class="fmt-row">
-        <select id="chart_labelField" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%"></select>
+        <select id="chart_type" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%">
+  <optgroup label="📊 Grafik Perbandingan">
+    <option value="bar">1. 📊 Column Chart — Grafik Kolom</option>
+    <option value="barh">2. 📊 Bar Chart — Grafik Batang</option>
+    <option value="clusteredColumn">3. 📊 Clustered Column Chart — Kolom Berkelompok</option>
+    <option value="stackedColumn">4. 📊 Stacked Column Chart — Kolom Bertumpuk</option>
+    <option value="stacked100Column">5. 📊 100% Stacked Column Chart — Kolom 100% Bertumpuk</option>
+    <option value="clusteredBar">6. 📊 Clustered Bar Chart — Batang Berkelompok</option>
+    <option value="stackedBar">7. 📊 Stacked Bar Chart — Batang Bertumpuk</option>
+  </optgroup>
+  <optgroup label="📈 Grafik Tren">
+    <option value="line">8. 📈 Line Chart — Grafik Garis</option>
+    <option value="area">9. 📈 Area Chart — Grafik Area</option>
+    <option value="stackedArea">10. 📈 Stacked Area Chart — Area Bertumpuk</option>
+    <option value="combo">11. 📈 Combo Chart — Column + Line</option>
+  </optgroup>
+  <optgroup label="🥧 Grafik Proporsi / Komposisi">
+    <option value="pie">12. 🥧 Pie Chart — Diagram Lingkaran</option>
+    <option value="doughnut">13. 🍩 Doughnut Chart — Diagram Donat</option>
+    <option value="treemap">14. 🟩 Treemap — Peta Kotak</option>
+    <option value="sunburst">15. ☀️ Sunburst Chart — Diagram Matahari</option>
+  </optgroup>
+  <optgroup label="🎯 Grafik Target / KPI">
+    <option value="gauge">16. 🎯 Gauge Chart — Speedometer</option>
+    <option value="bullet">17. 🎯 Bullet Chart — Grafik Bullet</option>
+    <option value="progress">18. 🎯 Progress Chart — Grafik Progress</option>
+    <option value="kpi">19. 🎯 KPI Card — Kartu Indikator</option>
+    <option value="radialBar">20. 🎯 Radial Bar Chart — Bar Melingkar</option>
+  </optgroup>
+  <optgroup label="🔗 Grafik Hubungan">
+    <option value="scatter">21. 🔗 Scatter Plot — Diagram Pencar</option>
+    <option value="bubble">22. 🔗 Bubble Chart — Diagram Gelembung</option>
+  </optgroup>
+  <optgroup label="🗺️ Grafik Distribusi / Analisis">
+    <option value="histogram">23. 🗺️ Histogram</option>
+    <option value="boxplot">24. 🗺️ Box & Whisker Chart</option>
+    <option value="waterfall">25. 🗺️ Waterfall Chart — Grafik Air Terjun</option>
+    <option value="funnel">26. 🗺️ Funnel Chart — Grafik Corong</option>
+  </optgroup>
+  <optgroup label="📅 Grafik Khusus Waktu / Periode">
+    <option value="timeline">27. 📅 Timeline Chart</option>
+    <option value="gantt">28. 📅 Gantt Chart</option>
+    <option value="calendarHeatmap">29. 📅 Calendar Heatmap</option>
+    <option value="heatmap">30. 📅 Heatmap</option>
+  </optgroup>
+</select>
       </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Kolom Label (Sumbu X / Kategori)</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px">Bisa dipilih dari kolom teks (mis. Anggaran UNIT) maupun kolom angka (mis. BLN 1, TOTAL BLN, dll.) sesuai kategori yang ingin ditampilkan di sumbu X.</div>
+      <div class="fmt-row">
+        <select id="chart_labelField" onchange="onChartLabelFieldChange()" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%"></select>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Isi Kategori yang Ditampilkan</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Centang isi/nilai dari kolom label di atas yang ingin ditampilkan pada grafik. Semua tercentang = tampilkan semua isi (otomatis mengikuti data baru yang masuk kemudian).</div>
+      <div class="colpanel-toolbar">
+        <button class="miniBtn" type="button" onclick="toggleAllChartLabelValues(true)">Pilih Semua</button>
+        <button class="miniBtn" type="button" onclick="toggleAllChartLabelValues(false)">Kosongkan</button>
+        <span class="colpanel-count" id="chartLabelValuesCount"></span>
+      </div>
+      <div class="colpick-list" id="chartLabelValues" style="max-height:220px;overflow:auto"></div>
     </div>
 
     <div class="form-section">
@@ -429,6 +681,23 @@ table thead th, table th{white-space:normal!important;overflow-wrap:anywhere;wor
       <button class="btn primary" type="button" onclick="saveHeaderEdits()">💾 Simpan</button>
       <button class="btn orange" type="button" onclick="resetAllHeaderEdits()">↺ Reset Paket Ini ke Default</button>
       <button class="btn gray" type="button" onclick="closeHeaderEditModal()">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Atur Urutan Kolom — list vertikal (seret ATAU tombol ▲▼), dipakai bergantian per paket -->
+<div id="columnOrderModal" class="modal-overlay hidden">
+  <div class="modal-box" style="width:min(560px,96vw)">
+    <div class="modal-title" id="columnOrderModalTitle">↕️ Atur Urutan Kolom</div>
+    <input type="hidden" id="columnOrder_packet">
+    <div style="font-size:10.5px;color:var(--muted);margin:-6px 0 10px">
+      Seret 「⠿」 untuk memindah, atau pakai tombol ▲▼ di tiap baris — jauh lebih mudah daripada menyeret judul kolom langsung di tabel. Kolom yang disamarkan (redup) tetap bisa diurutkan, tapi tidak muncul di tabel sampai ditampilkan lagi lewat "Pilih Kolom yang Ditampilkan".
+    </div>
+    <input type="text" id="columnOrderSearch" class="colorder-search" placeholder="🔍 Cari nama kolom..." oninput="renderColumnOrderList()">
+    <div class="colorder-list" id="columnOrderList"></div>
+    <div class="modal-actions">
+      <button class="btn orange" type="button" onclick="resetColumnOrderFromModal()">↺ Reset Urutan</button>
+      <button class="btn gray" type="button" onclick="closeColumnOrderModal()">Selesai</button>
     </div>
   </div>
 </div>
@@ -550,71 +819,181 @@ function renderCharts(){
     container.innerHTML = `<div class="chart-empty-state">Belum ada grafik. Klik "➕ Tambah Grafik" untuk membuat grafik pertama Anda dari data Summary ini.</div>`;
     return;
   }
-  container.innerHTML = `<div class="charts-grid">${charts.map(cfg=>`
-    <div class="chart-card" data-chart-id="${escapeAttr(cfg.id)}">
-      <div class="chart-card-header">
-        <div>
-          <div class="chart-card-title">${escapeHtml(cfg.title || "Grafik")}</div>
-          <div class="chart-card-sub">${escapeHtml(chartTypeLabel(cfg.type))} • ${escapeHtml((cfg.valueFields||[]).join(", "))}</div>
+  // Kelompokkan grafik per "baris grafik" (1-5). Baris yang tidak punya
+  // grafik sama sekali TIDAK dirender — jadi tidak menyisakan ruang/height kosong.
+  const rowsHtml = [1,2,3,4,5].map(rowNum=>{
+    const rowCharts = charts.filter(cfg => (Number(cfg.row)||1) === rowNum);
+    if(!rowCharts.length) return "";
+    return `<div class="chart-row" data-chart-row="${rowNum}">
+      <div class="chart-row-label">Baris Grafik ${rowNum}</div>
+      <div class="charts-grid">${rowCharts.map(cfg=>`
+        <div class="chart-card" data-chart-id="${escapeAttr(cfg.id)}">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">${escapeHtml(cfg.title || "Grafik")}</div>
+              <div class="chart-card-sub">${escapeHtml(chartTypeLabel(cfg.type))} • ${escapeHtml((cfg.valueFields||[]).join(", "))}</div>
+            </div>
+            <div class="chart-card-actions">
+              <button class="icon-btn edit" data-chart-action="edit" data-chart-id="${escapeAttr(cfg.id)}" title="Edit grafik">✏️</button>
+              <button class="icon-btn delete" data-chart-action="delete" data-chart-id="${escapeAttr(cfg.id)}" title="Hapus grafik">🗑️</button>
+            </div>
+          </div>
+          <div class="chart-canvas-wrap"><canvas id="canvas_${escapeAttr(cfg.id)}"></canvas></div>
         </div>
-        <div class="chart-card-actions">
-          <button class="icon-btn edit" data-chart-action="edit" data-chart-id="${escapeAttr(cfg.id)}" title="Edit grafik">✏️</button>
-          <button class="icon-btn delete" data-chart-action="delete" data-chart-id="${escapeAttr(cfg.id)}" title="Hapus grafik">🗑️</button>
-        </div>
-      </div>
-      <div class="chart-canvas-wrap"><canvas id="canvas_${escapeAttr(cfg.id)}"></canvas></div>
-    </div>
-  `).join("")}</div>`;
+      `).join("")}</div>
+    </div>`;
+  }).join("");
+  container.innerHTML = rowsHtml;
   charts.forEach(cfg=>renderChartInstance(cfg));
 }
 function chartTypeLabel(t){
-  return {bar:"Batang",barh:"Batang Horizontal",line:"Garis",pie:"Pie",doughnut:"Donut"}[t] || t;
+  const m={
+    bar:"Column Chart",barh:"Bar Chart",clusteredColumn:"Clustered Column Chart",
+    stackedColumn:"Stacked Column Chart",stacked100Column:"100% Stacked Column Chart",
+    clusteredBar:"Clustered Bar Chart",stackedBar:"Stacked Bar Chart",
+    line:"Line Chart",area:"Area Chart",stackedArea:"Stacked Area Chart",combo:"Combo Chart",
+    pie:"Pie Chart",doughnut:"Doughnut Chart",treemap:"Treemap",sunburst:"Sunburst Chart",
+    gauge:"Gauge Chart",bullet:"Bullet Chart",progress:"Progress Chart",kpi:"KPI Card",radialBar:"Radial Bar Chart",
+    scatter:"Scatter Plot",bubble:"Bubble Chart",histogram:"Histogram",boxplot:"Box & Whisker Chart",
+    waterfall:"Waterfall Chart",funnel:"Funnel Chart",timeline:"Timeline Chart",gantt:"Gantt Chart",
+    calendarHeatmap:"Calendar Heatmap",heatmap:"Heatmap"
+  };
+  return m[t] || t;
 }
+
+function chartBaseOptions(){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:true,labels:{font:{size:10}}},title:{display:false}},
+    scales:{x:{ticks:{font:{size:9}}},y:{ticks:{font:{size:9}},beginAtZero:true}}
+  };
+}
+
 function renderChartInstance(cfg){
-  const canvas = document.getElementById("canvas_"+cfg.id);
+  const canvas=document.getElementById("canvas_"+cfg.id);
   if(!canvas || typeof Chart==="undefined") return;
-  if(chartInstances[cfg.id]){ chartInstances[cfg.id].destroy(); delete chartInstances[cfg.id]; }
+  if(chartInstances[cfg.id]){chartInstances[cfg.id].destroy();delete chartInstances[cfg.id];}
 
-  let source = filteredData.slice();
-  const primaryField = (cfg.valueFields||[])[0];
-  if(cfg.sortDesc && primaryField){
-    source.sort((a,b)=>(Number(b[primaryField])||0)-(Number(a[primaryField])||0));
+  let source=filteredData.slice();
+  if(cfg.labelValues && cfg.labelValues.length){
+    const allowed = new Set(cfg.labelValues.map(String));
+    source = source.filter(r=>allowed.has(String(r[cfg.labelField]??"")));
   }
-  if(cfg.topN && cfg.topN>0){ source = source.slice(0, cfg.topN); }
+  const primaryField=(cfg.valueFields||[])[0];
+  if(cfg.sortDesc && primaryField) source.sort((a,b)=>(Number(b[primaryField])||0)-(Number(a[primaryField])||0));
+  if(cfg.topN && cfg.topN>0) source=source.slice(0,cfg.topN);
 
-  const labels = source.map(r=>String(r[cfg.labelField] ?? ""));
-  const isPieLike = cfg.type==="pie" || cfg.type==="doughnut";
-  const datasets = (cfg.valueFields||[]).map((vf,i)=>{
-    const color = CHART_PALETTE[i % CHART_PALETTE.length];
-    return {
-      label: vf,
-      data: source.map(r=>Number(r[vf])||0),
-      backgroundColor: isPieLike ? source.map((_,j)=>CHART_PALETTE[j % CHART_PALETTE.length]) : color+"CC",
-      borderColor: color,
-      borderWidth: cfg.type==="line" ? 2 : 1,
-      fill: false,
-      tension: 0.25
-    };
-  });
+  const labels=source.map(r=>String(r[cfg.labelField]??""));
+  const fields=cfg.valueFields||[];
+  const colors=CHART_PALETTE;
+  const vals=f=>source.map(r=>Number(r[f])||0);
+  const datasets=fields.map((vf,i)=>({
+    label:vf,data:vals(vf),backgroundColor:colors[i%colors.length]+"CC",
+    borderColor:colors[i%colors.length],borderWidth:1,fill:false,tension:.25
+  }));
 
-  const chartJsType = cfg.type==="barh" ? "bar" : cfg.type;
-  chartInstances[cfg.id] = new Chart(canvas.getContext("2d"), {
-    type: chartJsType,
-    data: { labels, datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      indexAxis: cfg.type==="barh" ? "y" : "x",
-      plugins: {
-        legend: { display: (datasets.length>1) || isPieLike, labels:{font:{size:10}} },
-        title: { display:false }
-      },
-      scales: isPieLike ? {} : {
-        x: { ticks:{font:{size:9}} },
-        y: { ticks:{font:{size:9}}, beginAtZero:true }
-      }
+  let type="bar", data={labels,datasets}, options=chartBaseOptions();
+  const t=cfg.type;
+
+  if(t==="barh"){type="bar";options.indexAxis="y";}
+  else if(t==="clusteredColumn"){type="bar";options.scales.x.stacked=false;options.scales.y.stacked=false;}
+  else if(t==="stackedColumn"){type="bar";options.scales.x.stacked=true;options.scales.y.stacked=true;}
+  else if(t==="stacked100Column"){
+    type="bar";options.scales.x.stacked=true;options.scales.y.stacked=true;
+    options.scales.y.max=100;options.scales.y.ticks={font:{size:9},callback:v=>v+"%"};
+    datasets.forEach(ds=>{ds.data=source.map(r=>{const total=fields.reduce((a,f)=>a+(Number(r[f])||0),0);return total?((Number(r[ds.label])||0)/total*100):0;});});
+  }
+  else if(t==="clusteredBar"){type="bar";options.indexAxis="y";options.scales.x.stacked=false;options.scales.y.stacked=false;}
+  else if(t==="stackedBar"){type="bar";options.indexAxis="y";options.scales.x.stacked=true;options.scales.y.stacked=true;}
+  else if(t==="line"){type="line";datasets.forEach(ds=>{ds.backgroundColor=ds.borderColor;ds.fill=false;ds.borderWidth=2;});}
+  else if(t==="area"){type="line";datasets.forEach(ds=>{ds.backgroundColor=ds.borderColor+"55";ds.fill=true;ds.borderWidth=2;});}
+  else if(t==="stackedArea"){type="line";datasets.forEach(ds=>{ds.backgroundColor=ds.borderColor+"55";ds.fill=true;ds.borderWidth=2;});options.scales.y.stacked=true;}
+  else if(t==="combo"){
+    type="bar";
+    if(datasets.length){
+      datasets.forEach((ds,i)=>{ if(i===datasets.length-1){ds.type="line";ds.backgroundColor=ds.borderColor;ds.fill=false;ds.borderWidth=2;} });
     }
-  });
+  }
+  else if(t==="pie"||t==="doughnut"){
+    type=t; const first=fields[0]; data={labels,datasets:[{label:first,data:vals(first),backgroundColor:source.map((_,i)=>colors[i%colors.length]),borderColor:"#fff",borderWidth:2}]};
+    options={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{font:{size:10}}}}};
+  }
+  else if(t==="treemap"){
+    type="treemap";
+    const first=fields[0];
+    data={datasets:[{tree:source.map(r=>Number(r[first])||0),key:"value",groups:[cfg.labelField],backgroundColor:(ctx)=>colors[ctx.dataIndex%colors.length],labels:{display:true,formatter:ctx=>ctx.raw?.g?.[0]??ctx.raw?.v??""}}]};
+    options={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
+  }
+  else if(t==="sunburst"){
+    type="doughnut";
+    const first=fields[0];
+    data={labels,datasets:[{label:first,data:vals(first),backgroundColor:source.map((_,i)=>colors[i%colors.length]),borderColor:"#fff",borderWidth:2,weight:1},
+      {label:"Komposisi",data:vals(first).map(v=>Math.sqrt(Math.abs(v))),backgroundColor:source.map((_,i)=>colors[(i+3)%colors.length]+"99"),borderColor:"#fff",borderWidth:1,weight:.55}]};
+    options={responsive:true,maintainAspectRatio:false,cutout:"28%",plugins:{legend:{display:true,labels:{font:{size:10}}}}};
+  }
+  else if(t==="gauge"||t==="progress"){
+    const v=Number(source[0]?.[fields[0]])||0, target=Math.max(Number(source[1]?.[fields[0]])||100,1), pct=Math.max(0,Math.min(100,v/target*100));
+    type="doughnut";data={labels:["Tercapai","Sisa"],datasets:[{data:[pct,100-pct],backgroundColor:[colors[0], "#e5e7eb"],borderWidth:0}]};
+    options={responsive:true,maintainAspectRatio:false,rotation:-90,circumference:180,cutout:"68%",plugins:{legend:{display:false},tooltip:{enabled:false}}};
+  }
+  else if(t==="kpi"){
+    type="doughnut";const v=Number(source[0]?.[fields[0]])||0;
+    data={labels:[fields[0]],datasets:[{data:[1],backgroundColor:[colors[0]],borderWidth:0}]};
+    options={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false},title:{display:true,text:String(v.toLocaleString("id-ID")),font:{size:28,weight:"800"},padding:{top:60,bottom:20}}}};
+  }
+  else if(t==="bullet"){
+    type="bar";const v=Number(source[0]?.[fields[0]])||0,target=Number(source[1]?.[fields[0]])||100;
+    data={labels:[labels[0]||"KPI"],datasets:[{label:"Target",data:[target],backgroundColor:"#d1d5db",barThickness:24},{label:"Realisasi",data:[v],backgroundColor:colors[0],barThickness:12}]};
+    options.indexAxis="y";options.plugins.legend.display=true;
+  }
+  else if(t==="radialBar"){
+    type="doughnut";data={labels,datasets:[{data:vals(fields[0]),backgroundColor:source.map((_,i)=>colors[i%colors.length]),borderColor:"#fff",borderWidth:2}]};
+    options={responsive:true,maintainAspectRatio:false,cutout:"45%",plugins:{legend:{display:true,labels:{font:{size:9}}}}};
+  }
+  else if(t==="scatter"){
+    type="scatter";const xField=fields[0],yField=fields[1]||fields[0];
+    data={datasets:[{label:xField+" vs "+yField,data:source.map((r,i)=>({x:Number(r[xField])||0,y:Number(r[yField])||0})),backgroundColor:colors[0]}]};
+  }
+  else if(t==="bubble"){
+    type="bubble";const xField=fields[0],yField=fields[1]||fields[0],rField=fields[2]||fields[0];
+    data={datasets:[{label:xField+" / "+yField,data:source.map(r=>({x:Number(r[xField])||0,y:Number(r[yField])||0,r:Math.max(3,Math.sqrt(Math.abs(Number(r[rField])||0))/5)})),backgroundColor:colors[0]+"99"}]};
+  }
+  else if(t==="histogram"){
+    type="bar";const raw=vals(fields[0]).filter(v=>Number.isFinite(v));const n=Math.min(10,Math.max(5,Math.ceil(Math.sqrt(raw.length||1))));
+    const min=Math.min(...raw,0),max=Math.max(...raw,1),step=(max-min||1)/n,bins=Array.from({length:n},(_,i)=>({lo:min+i*step,hi:i===n-1?max:min+(i+1)*step,count:0}));
+    raw.forEach(v=>{let i=Math.min(n-1,Math.floor((v-min)/(max-min||1)*n));bins[i].count++;});
+    data={labels:bins.map(b=>`${b.lo.toLocaleString("id-ID",{maximumFractionDigits:1})}–${b.hi.toLocaleString("id-ID",{maximumFractionDigits:1})}`),datasets:[{label:fields[0],data:bins.map(b=>b.count),backgroundColor:colors[0]+"CC"}]};
+  }
+  else if(t==="boxplot"){
+    type="boxplot";data={labels:[fields[0]],datasets:[{label:fields[0],data:[vals(fields[0])],backgroundColor:colors[0]+"55",borderColor:colors[0]}]};
+  }
+  else if(t==="waterfall"){
+    type="bar";const raw=vals(fields[0]);let cum=0;const floating=raw.map(v=>{const start=cum;cum+=v;return [Math.min(start,cum),Math.max(start,cum)];});
+    data={labels,datasets:[{label:fields[0],data:floating,backgroundColor:raw.map(v=>v>=0?colors[1]+"CC":colors[4]+"CC"),borderColor:raw.map(v=>v>=0?colors[1]:colors[4]),borderWidth:1}]};
+  }
+  else if(t==="funnel"){
+    type="funnel";const first=fields[0];data={labels,datasets:[{label:first,data:vals(first),backgroundColor:source.map((_,i)=>colors[i%colors.length])}]};
+    options={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
+  }
+  else if(t==="timeline"||t==="gantt"){
+    type="bar";options.indexAxis="y";
+    const raw=source.map((r,i)=>Number(r[fields[0]])||0);
+    data={labels:labels.map((l,i)=>l||("Periode "+(i+1))),datasets:[{label:fields[0],data:raw.map((v,i)=>[i,Math.max(i+1,i+v)]),backgroundColor:colors[0]+"CC"}]};
+    options.scales.x={beginAtZero:true,ticks:{font:{size:9}}};options.scales.y={ticks:{font:{size:9}}};
+  }
+  else if(t==="heatmap"||t==="calendarHeatmap"){
+    type="matrix";const vf=fields[0], n=source.length;
+    const matrixData=source.map((r,i)=>({x:i%12,y:Math.floor(i/12),v:Number(r[vf])||0}));
+    data={datasets:[{label:vf,data:matrixData,backgroundColor:ctx=>{const v=ctx.raw?.v||0;const max=Math.max(...matrixData.map(d=>d.v),1);return colors[0]+Math.round(35+190*v/max).toString(16).padStart(2,"0");},width:({chart})=>(chart.chartArea?.width||300)/12-3,height:({chart})=>(chart.chartArea?.height||200)/Math.max(1,Math.ceil(n/12))-3}]};
+    options={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${labels[ctx.raw?.x]||""}: ${ctx.raw?.v??0}`}}},scales:{x:{display:false},y:{display:false}}};
+  }
+
+  try{
+    chartInstances[cfg.id]=new Chart(canvas.getContext("2d"),{type,data,options});
+  }catch(err){
+    console.error("Chart render error",t,err);
+    chartInstances[cfg.id]=new Chart(canvas.getContext("2d"),{type:"bar",data:{labels,datasets},options:chartBaseOptions()});
+  }
 }
 
 function renderChartValueFieldGroups(selected){
@@ -633,14 +1012,62 @@ function renderChartValueFieldGroups(selected){
     </div>`;
   }).join("");
 }
+function populateChartLabelFieldSelect(selectedField){
+  const sel = document.getElementById("chart_labelField");
+  let html = "";
+  GROUPS.forEach(g=>{
+    const fields = FIELD_DEFS.filter(f=>f.group===g);
+    if(!fields.length) return;
+    html += `<optgroup label="${escapeAttr(g)}">${fields.map(f=>`<option value="${escapeAttr(f.key)}">${escapeHtml(f.label)}${f.type==="number"?" (angka)":""}</option>`).join("")}</optgroup>`;
+  });
+  sel.innerHTML = html;
+  sel.value = selectedField || FIELD_DEFS[0]?.key || "";
+}
+function getUniqueChartLabelValues(field){
+  const set = new Set();
+  filteredData.forEach(r=>{ set.add(String(r[field]??"")); });
+  return Array.from(set).sort((a,b)=>a.localeCompare(b,"id",{numeric:true}));
+}
+function renderChartLabelValueCheckboxes(field, selectedValues){
+  const wrap = document.getElementById("chartLabelValues");
+  const values = getUniqueChartLabelValues(field);
+  // Jika belum pernah diatur (undefined) atau kosong = anggap semua tercentang.
+  const allSelected = !selectedValues || !selectedValues.length;
+  const selectedSet = new Set((selectedValues||[]).map(String));
+  if(!values.length){
+    wrap.innerHTML = `<div style="font-size:10.5px;color:var(--muted)">Tidak ada data untuk kolom ini.</div>`;
+  }else{
+    wrap.innerHTML = values.map(v=>`<label>
+      <input type="checkbox" data-chartlabelvalue="${escapeAttr(v)}" ${allSelected || selectedSet.has(v) ? "checked" : ""}>
+      ${escapeHtml(v===""?"(kosong)":v)}
+    </label>`).join("");
+  }
+  updateChartLabelValuesCount();
+}
+function updateChartLabelValuesCount(){
+  const all = document.querySelectorAll("#chartLabelValues input[data-chartlabelvalue]");
+  const checked = document.querySelectorAll("#chartLabelValues input[data-chartlabelvalue]:checked");
+  const el = document.getElementById("chartLabelValuesCount");
+  if(el) el.textContent = all.length ? `${checked.length} / ${all.length} isi dipilih` : "";
+}
+function onChartLabelFieldChange(){
+  const field = document.getElementById("chart_labelField").value;
+  renderChartLabelValueCheckboxes(field, null);
+}
+function toggleAllChartLabelValues(state){
+  document.querySelectorAll("#chartLabelValues input[data-chartlabelvalue]").forEach(el=>{ el.checked = state; });
+  updateChartLabelValuesCount();
+}
 function openChartModal(chartId){
   const existing = chartId ? charts.find(c=>c.id===chartId) : null;
   const cfg = existing || {
     id: "c"+Date.now(),
     title: "",
     type: "bar",
+    row: 1,
     labelField: (FIELD_DEFS.find(f=>f.type==="text") || FIELD_DEFS[0]).key,
     valueFields: ["Target IDR"],
+    labelValues: [],
     sortDesc: true,
     topN: 0
   };
@@ -648,11 +1075,10 @@ function openChartModal(chartId){
   document.getElementById("chart_id").value = existing ? existing.id : "";
   document.getElementById("chart_title").value = cfg.title || "";
   document.getElementById("chart_type").value = cfg.type || "bar";
+  document.getElementById("chart_row").value = String(cfg.row || 1);
 
-  const labelSelect = document.getElementById("chart_labelField");
-  const textFields = FIELD_DEFS.filter(f=>f.type==="text");
-  labelSelect.innerHTML = textFields.map(f=>`<option value="${escapeAttr(f.key)}">${escapeHtml(f.label)}</option>`).join("");
-  labelSelect.value = cfg.labelField || textFields[0]?.key || "";
+  populateChartLabelFieldSelect(cfg.labelField);
+  renderChartLabelValueCheckboxes(document.getElementById("chart_labelField").value, cfg.labelValues || []);
 
   renderChartValueFieldGroups(cfg.valueFields || []);
   document.getElementById("chart_sort").checked = cfg.sortDesc !== false;
@@ -671,12 +1097,20 @@ function saveChartModal(){
     .map(el=>el.dataset.chartvaluekey);
   if(!valueFields.length){ showAlert("Pilih minimal 1 kolom nilai (sumbu Y) untuk grafik.","error"); return; }
 
+  const allLabelCheckboxes = Array.from(document.querySelectorAll("#chartLabelValues input[data-chartlabelvalue]"));
+  const checkedLabelValues = allLabelCheckboxes.filter(el=>el.checked).map(el=>el.dataset.chartlabelvalue);
+  if(allLabelCheckboxes.length && !checkedLabelValues.length){ showAlert("Pilih minimal 1 isi kategori untuk ditampilkan pada grafik.","error"); return; }
+  // Jika semua isi tercentang, simpan array kosong = tidak difilter (otomatis ikut data baru).
+  const labelValues = (checkedLabelValues.length === allLabelCheckboxes.length) ? [] : checkedLabelValues;
+
   const cfg = {
     id,
     title: document.getElementById("chart_title").value.trim() || "Grafik Tanpa Judul",
     type: document.getElementById("chart_type").value,
+    row: Number(document.getElementById("chart_row").value) || 1,
     labelField: document.getElementById("chart_labelField").value,
     valueFields,
+    labelValues,
     sortDesc: document.getElementById("chart_sort").checked,
     topN: Number(document.getElementById("chart_topn").value) || 0
   };
@@ -704,6 +1138,9 @@ function initChartsDelegation(){
     if(action==="edit") openChartModal(id);
     else if(action==="delete") deleteChart(id);
   });
+  document.getElementById("chartLabelValues").addEventListener("change",(e)=>{
+    if(e.target && e.target.matches("input[data-chartlabelvalue]")) updateChartLabelValuesCount();
+  });
 }
 
 // ------------------------------------------------------------
@@ -719,8 +1156,8 @@ function loadSetLS(key, fallbackArr){
 function loadObjLS(key){
   try{ const raw=localStorage.getItem(key); return raw?JSON.parse(raw):{}; }catch(e){ return {}; }
 }
-function loadColumnOrderLS(key){
-  const defaultOrder = FIELD_DEFS.map(f=>f.key);
+function loadColumnOrderLS(key, defaultOrder){
+  defaultOrder = defaultOrder || FIELD_DEFS.map(f=>f.key);
   try{
     const raw = localStorage.getItem(key);
     if(!raw) return defaultOrder.slice();
@@ -731,6 +1168,16 @@ function loadColumnOrderLS(key){
     return cleaned;
   }catch(e){ return defaultOrder.slice(); }
 }
+function loadRawArrayLS(key){
+  try{ const raw = localStorage.getItem(key); if(!raw) return null; const arr = JSON.parse(raw); return Array.isArray(arr) ? arr : null; }
+  catch(e){ return null; }
+}
+// Kolom & grup efektif suatu paket: paket bersumber "summary" pakai FIELD_DEFS/GROUPS
+// global seperti sebelumnya; paket bersumber sheet lain pakai daftar kolomnya sendiri
+// (pk.fieldDefs), yang diturunkan otomatis dari data sheet tsb saat dimuat.
+function isForeignPacket(pk){ return !!(pk.sourceSheet && pk.sourceSheet !== "summary"); }
+function fieldDefsOf(pk){ return isForeignPacket(pk) ? (pk.fieldDefs||[]) : FIELD_DEFS; }
+function groupsOf(pk){ return isForeignPacket(pk) ? ["Semua Kolom"] : GROUPS; }
 
 // ------------------------------------------------------------
 // DAFTAR TABEL AKTUAL (dinamis) — bisa bertambah/berkurang dari UI
@@ -750,18 +1197,33 @@ function loadPacketList(){
   }catch(e){ return defaultPacketConfigs(); }
 }
 function savePacketList(){
-  localStorage.setItem(PACKET_LIST_KEY, JSON.stringify(packetConfigs.map(c=>({id:c.id,icon:c.icon,title:c.title,groups:c.groups||[]}))));
+  localStorage.setItem(PACKET_LIST_KEY, JSON.stringify(packetConfigs.map(c=>({id:c.id,icon:c.icon,title:c.title,groups:c.groups||[],source:c.source||"summary"}))));
 }
 function createPacketState(cfg){
   const pk = { cfg, id: cfg.id, currentPage: 1 };
-  const defaultCols = (cfg.groups && cfg.groups.length)
-    ? FIELD_DEFS.filter(f=>cfg.groups.includes(f.group)).map(f=>f.key)
-    : FIELD_DEFS.map(f=>f.key);
-  pk.visibleCols = loadSetLS(lsKey(pk,"visible_cols"), defaultCols);
+  pk.sourceSheet = cfg.source && cfg.source !== "summary" ? cfg.source : "summary";
+  if(isForeignPacket(pk)){
+    // Kolom belum diketahui sampai data sheet-nya berhasil dimuat (async).
+    // Simpan mentah dulu dari localStorage (kalau ada), rekonsiliasi dilakukan
+    // di loadPacketSourceData() begitu daftar kolom sebenarnya sudah diketahui.
+    pk.fieldDefs = [];
+    pk.sourceRows = [];
+    pk._sourceLoaded = false;
+    pk.columnOrder = loadRawArrayLS(lsKey(pk,"column_order")) || [];
+    const savedVisRaw = localStorage.getItem(lsKey(pk,"visible_cols"));
+    pk._hasSavedVisible = !!savedVisRaw;
+    try{ pk.visibleCols = savedVisRaw ? new Set(JSON.parse(savedVisRaw)) : new Set(); }
+    catch(e){ pk.visibleCols = new Set(); }
+  }else{
+    const defaultCols = (cfg.groups && cfg.groups.length)
+      ? FIELD_DEFS.filter(f=>cfg.groups.includes(f.group)).map(f=>f.key)
+      : FIELD_DEFS.map(f=>f.key);
+    pk.visibleCols = loadSetLS(lsKey(pk,"visible_cols"), defaultCols);
+    pk.columnOrder = loadColumnOrderLS(lsKey(pk,"column_order"));
+  }
   pk.rowStyles = loadObjLS(lsKey(pk,"row_styles"));
   pk.colStyles = loadObjLS(lsKey(pk,"col_styles"));
   pk.colHeaderStyles = loadObjLS(lsKey(pk,"col_header_styles"));
-  pk.columnOrder = loadColumnOrderLS(lsKey(pk,"column_order"));
   const savedTitle = localStorage.getItem(lsKey(pk,"table_title"));
   pk.tableTitle = (savedTitle && savedTitle.trim()) ? savedTitle : (cfg.icon+" "+cfg.title);
   return pk;
@@ -798,6 +1260,79 @@ function savePacketColumnOrder(pk){ localStorage.setItem(lsKey(pk,"column_order"
 function savePacketTitle(pk){ localStorage.setItem(lsKey(pk,"table_title"), pk.tableTitle); }
 
 // ------------------------------------------------------------
+// SUMBER DATA DARI SHEET LAIN (di luar "summary") — dipakai oleh
+// paket yang dibuat lewat pilihan "🗂️ Sheet lain dari Code.gs".
+// Kolom TIDAK perlu diketik manual: diturunkan otomatis dari nama
+// field pada data yang dikembalikan API (yang sudah sama persis
+// dengan header sheet aslinya di code.gs). Tabel ini bersifat
+// tampilan/baca-saja: tidak memakai form Tambah/Edit/Hapus baris
+// yang memang dirancang khusus untuk skema sheet "summary".
+// ------------------------------------------------------------
+let availableSheetsCache = null;
+async function fetchAvailableSheets(){
+  if(availableSheetsCache) return availableSheetsCache;
+  try{
+    const result = await apiGet({action:"tables"});
+    availableSheetsCache = Array.isArray(result.data) ? result.data : [];
+  }catch(e){ availableSheetsCache = []; }
+  return availableSheetsCache;
+}
+async function loadPacketSourceData(pk){
+  if(!isForeignPacket(pk)) return;
+  try{
+    const result = await apiGet({action:"list", sheet: pk.sourceSheet});
+    const rows = Array.isArray(result.data) ? result.data : [];
+    ensureLocalRowKeys(rows);
+    pk.sourceRows = rows;
+
+    // Kolom = union semua key pada data yang dikembalikan, kecuali field
+    // teknis (id/timestamp), diurutkan berdasarkan kemunculan pertama.
+    const exclude = new Set(["id","created_at","updated_at","password_hash","__rowKey"]);
+    const seen = new Set();
+    const orderedKeys = [];
+    rows.forEach(r=>Object.keys(r).forEach(k=>{ if(!exclude.has(k) && !seen.has(k)){ seen.add(k); orderedKeys.push(k); } }));
+    pk.fieldDefs = orderedKeys.map(k=>{
+      const withVal = rows.find(r=>r[k]!==undefined && r[k]!==null && String(r[k]).trim()!=="");
+      const isNum = withVal!==undefined && /^-?[\d.,]+$/.test(String(withVal[k]).trim()) && !isNaN(Number(String(withVal[k]).replace(/,/g,"")));
+      return {key:k, label:k, type: isNum?"number":"text", group:"Semua Kolom"};
+    });
+
+    const validKeys = new Set(pk.fieldDefs.map(f=>f.key));
+    let order = (pk.columnOrder||[]).filter(k=>validKeys.has(k));
+    pk.fieldDefs.forEach(f=>{ if(!order.includes(f.key)) order.push(f.key); });
+    pk.columnOrder = order;
+    savePacketColumnOrder(pk);
+
+    if(!pk._hasSavedVisible){
+      pk.visibleCols = new Set(pk.fieldDefs.map(f=>f.key));
+    }else{
+      pk.visibleCols = new Set([...pk.visibleCols].filter(k=>validKeys.has(k)));
+    }
+    savePacketVisibleCols(pk);
+    pk._hasSavedVisible = true;
+    pk._sourceLoaded = true;
+  }catch(err){
+    showAlert(`Gagal memuat sheet "${pk.sourceSheet}" untuk paket "${pk.tableTitle}": `+err.message, "error");
+    pk.sourceRows = pk.sourceRows || [];
+    pk.fieldDefs = pk.fieldDefs || [];
+    pk._sourceLoaded = true;
+  }
+}
+async function refreshPacketSource(pkId){
+  const pk = typeof pkId==="string" ? getPacket(pkId) : pkId;
+  if(!pk || !isForeignPacket(pk)) return;
+  showAlert(`Memuat data sheet "${pk.sourceSheet}"...`, "info");
+  await loadPacketSourceData(pk);
+  buildTableHead(pk);
+  renderColumnPickerGroups(pk);
+  updateColpanelCount(pk);
+  renderColorPickerGroups(pk);
+  updateColorpanelCount(pk);
+  renderTable(pk);
+  showAlert(`Sheet "${pk.sourceSheet}" dimuat: ${(pk.sourceRows||[]).length.toLocaleString("id-ID")} baris ke paket "${pk.tableTitle}".`, "success");
+}
+
+// ------------------------------------------------------------
 // TAMBAH / HAPUS TABEL
 // ------------------------------------------------------------
 function renderNewTableGroupsPicker(){
@@ -809,16 +1344,74 @@ function renderNewTableGroupsPicker(){
 function toggleAllNewTableGroups(check){
   document.querySelectorAll('#newTableGroups input[data-newtablegroup]').forEach(cb=>{ cb.checked = check; });
 }
-function openAddTableModal(){
+function currentNewTableSource(){
+  const el = document.querySelector('input[name="newTableSource"]:checked');
+  return el ? el.value : "summary";
+}
+function onNewTableSourceChange(){
+  const mode = currentNewTableSource();
+  document.getElementById("newTableGroupsSection").classList.toggle("hidden", mode!=="summary");
+  document.getElementById("newTableSheetSection").classList.toggle("hidden", mode!=="sheet");
+  document.getElementById("newTableDuplicateSection").classList.toggle("hidden", mode!=="duplicate");
+}
+async function openAddTableModal(){
   document.getElementById("newTable_title").value = "";
+  document.querySelectorAll('input[name="newTableSource"]').forEach(r=>{ r.checked = (r.value==="summary"); });
   renderNewTableGroupsPicker();
+  onNewTableSourceChange();
   document.getElementById("addTableModal").classList.remove("hidden");
+
+  // Isi dropdown "Sheet lain" — daftar sheet diambil langsung dari code.gs
+  // lewat action:"tables", jadi tidak perlu diketik manual di frontend.
+  const sheetSelect = document.getElementById("newTable_sheet");
+  sheetSelect.innerHTML = `<option value="">Memuat daftar sheet...</option>`;
+  const sheets = await fetchAvailableSheets();
+  const selectable = sheets.filter(s=>s!=="summary" && s!=="users");
+  sheetSelect.innerHTML = selectable.length
+    ? selectable.map(s=>`<option value="${escapeAttr(s)}">${escapeHtml(s)}</option>`).join("")
+    : `<option value="">Tidak ada sheet lain terdaftar di code.gs</option>`;
+
+  // Isi dropdown "Duplikat tabel" dari daftar paket yang sedang tampil.
+  const dupSelect = document.getElementById("newTable_duplicateFrom");
+  dupSelect.innerHTML = packetOrder.map(id=>getPacket(id)).filter(Boolean)
+    .map(p=>`<option value="${escapeAttr(p.id)}">${escapeHtml(p.tableTitle)}</option>`).join("")
+    || `<option value="">Belum ada tabel untuk diduplikat</option>`;
 }
 function closeAddTableModal(){ document.getElementById("addTableModal").classList.add("hidden"); }
 function saveAddTableModal(){
-  const title = document.getElementById("newTable_title").value.trim() || "Tabel Baru";
+  const mode = currentNewTableSource();
+  const titleInput = document.getElementById("newTable_title").value.trim();
+
+  if(mode==="duplicate"){
+    const srcId = document.getElementById("newTable_duplicateFrom").value;
+    const src = getPacket(srcId);
+    if(!src){ showAlert("Pilih tabel yang ingin diduplikat terlebih dahulu.","error"); return; }
+    duplicatePacket(src, titleInput);
+    return;
+  }
+
+  if(mode==="sheet"){
+    const sheetName = document.getElementById("newTable_sheet").value;
+    if(!sheetName){ showAlert("Pilih sheet yang ingin ditambahkan terlebih dahulu.","error"); return; }
+    const title = titleInput || sheetName;
+    const cfg = { id:"pk"+Date.now(), icon:"🗂️", title, groups:[], source: sheetName };
+    packetConfigs.push(cfg);
+    savePacketList();
+    const pk = createPacketState(cfg);
+    packets.push(pk);
+    packetOrder.push(cfg.id);
+    savePacketOrder();
+    closeAddTableModal();
+    renderAllPacketShells();
+    packets.forEach(p=>renderTable(p));
+    showAlert("Tabel \""+cfg.title+"\" berhasil dibuat dari sheet \""+sheetName+"\". Sedang memuat datanya...","success");
+    return;
+  }
+
+  // mode === "summary" (perilaku lama, tidak berubah)
+  const title = titleInput || "Tabel Baru";
   const groups = Array.from(document.querySelectorAll('#newTableGroups input[data-newtablegroup]:checked')).map(cb=>cb.dataset.newtablegroup);
-  const cfg = { id:"pk"+Date.now(), icon:"📋", title, groups };
+  const cfg = { id:"pk"+Date.now(), icon:"📋", title, groups, source:"summary" };
   packetConfigs.push(cfg);
   savePacketList();
   const pk = createPacketState(cfg);
@@ -829,6 +1422,48 @@ function saveAddTableModal(){
   renderAllPacketShells();
   packets.forEach(p=>renderTable(p));
   showAlert("Tabel \""+cfg.title+"\" berhasil dibuat. Atur kolomnya lewat \"Pilih Kolom yang Ditampilkan\".","success");
+}
+// Duplikat sebuah paket: menyalin sumber data, kolom tampil, urutan kolom,
+// warna, dan alias header persis dari paket sumber ke paket baru yang
+// sepenuhnya independen (perubahan berikutnya di salah satu tabel tidak
+// akan mempengaruhi tabel lainnya).
+function duplicatePacket(src, titleInput){
+  const cfg = {
+    id: "pk"+Date.now(),
+    icon: src.cfg.icon,
+    title: titleInput || (src.cfg.title + " (Salinan)"),
+    groups: (src.cfg.groups||[]).slice(),
+    source: src.sourceSheet || "summary"
+  };
+  packetConfigs.push(cfg);
+  savePacketList();
+  const pk = createPacketState(cfg);
+  // Timpa hasil default createPacketState dengan salinan PERSIS dari sumber,
+  // supaya tabel baru langsung identik (kolom, urutan, warna, alias header).
+  pk.visibleCols = new Set(src.visibleCols);
+  pk.columnOrder = src.columnOrder.slice();
+  pk.colStyles = JSON.parse(JSON.stringify(src.colStyles||{}));
+  pk.colHeaderStyles = JSON.parse(JSON.stringify(src.colHeaderStyles||{}));
+  pk.rowStyles = JSON.parse(JSON.stringify(src.rowStyles||{}));
+  pk.tableTitle = titleInput || (src.tableTitle + " (Salinan)");
+  savePacketVisibleCols(pk);
+  savePacketColumnOrder(pk);
+  savePacketColStyles(pk);
+  savePacketColHeaderStyles(pk);
+  savePacketRowStyles(pk);
+  savePacketTitle(pk);
+  if(isForeignPacket(pk)){
+    // Data & fieldDefs dimuat ulang langsung dari sheet-nya (bukan disalin
+    // dari cache paket sumber) supaya selalu konsisten dengan data terkini.
+    pk._hasSavedVisible = true; // pertahankan visibleCols hasil salinan di atas
+  }
+  packets.push(pk);
+  packetOrder.push(cfg.id);
+  savePacketOrder();
+  closeAddTableModal();
+  renderAllPacketShells();
+  packets.forEach(p=>renderTable(p));
+  showAlert("Tabel \""+pk.tableTitle+"\" berhasil dibuat sebagai duplikat dari \""+src.tableTitle+"\".","success");
 }
 function deletePacket(id){
   if(packets.length<=1){ showAlert("Minimal harus ada 1 tabel — tidak bisa menghapus tabel terakhir.","error"); return; }
@@ -848,12 +1483,12 @@ function deletePacket(id){
 }
 // Field ditampilkan sesuai urutan custom pk.columnOrder (bukan urutan asli FIELD_DEFS)
 function getOrderedFieldDefs(pk){
-  return pk.columnOrder.map(k=>FIELD_DEFS.find(f=>f.key===k)).filter(Boolean);
+  return pk.columnOrder.map(k=>fieldDefsOf(pk).find(f=>f.key===k)).filter(Boolean);
 }
 function resetColumnOrder(pkId){
   const pk = getPacket(pkId);
   if(!pk) return;
-  pk.columnOrder = FIELD_DEFS.map(f=>f.key);
+  pk.columnOrder = fieldDefsOf(pk).map(f=>f.key);
   savePacketColumnOrder(pk);
   buildTableHead(pk);
   renderTable(pk);
@@ -877,14 +1512,123 @@ function reorderColumnsDrag(pkId, draggedKey, targetKey, placeAfter){
   renderTable(pk);
 }
 
+// ------------------------------------------------------------
+// MODAL "ATUR URUTAN KOLOM" — cara yang lebih mudah untuk mengubah
+// urutan kolom: daftar vertikal (nama kolom jelas terbaca) dengan
+// tombol ▲▼ per baris, plus drag & drop (target seret jauh lebih
+// besar daripada <th> di tabel). Perubahan langsung tersimpan.
+// ------------------------------------------------------------
+let columnOrderDragKey = null;
+
+function openColumnOrderModal(pkId){
+  const pk = getPacket(pkId);
+  if(!pk) return;
+  document.getElementById("columnOrder_packet").value = pkId;
+  document.getElementById("columnOrderModalTitle").textContent = "↕️ Atur Urutan Kolom — " + pk.tableTitle.replace(/^\S+\s/, "");
+  document.getElementById("columnOrderSearch").value = "";
+  renderColumnOrderList();
+  document.getElementById("columnOrderModal").classList.remove("hidden");
+}
+function closeColumnOrderModal(){
+  document.getElementById("columnOrderModal").classList.add("hidden");
+}
+function renderColumnOrderList(){
+  const pkId = document.getElementById("columnOrder_packet").value;
+  const pk = getPacket(pkId);
+  const wrap = document.getElementById("columnOrderList");
+  if(!pk || !wrap) return;
+  const query = (document.getElementById("columnOrderSearch").value || "").trim().toLowerCase();
+  const defs = getOrderedFieldDefs(pk);
+  wrap.innerHTML = defs.map((f, i)=>{
+    const visible = pk.visibleCols.has(f.key);
+    const matches = !query || f.label.toLowerCase().includes(query) || (f.group||"").toLowerCase().includes(query);
+    return `<div class="colorder-item${visible?"":" col-hidden-item"}${matches?"":" hidden"}" draggable="true" data-key="${escapeAttr(f.key)}">
+      <span class="drag-handle" title="Seret untuk memindah">⠿</span>
+      <span class="colorder-idx">${i+1}</span>
+      <span class="colorder-name">${escapeHtml(f.label)}<span class="colorder-group">${escapeHtml(f.group||"")}</span></span>
+      ${visible?"":'<span class="colorder-badge">tersembunyi</span>'}
+      <div class="colorder-moves">
+        <button type="button" title="Naikkan" ${i===0?"disabled":""} onclick="moveColumnOrderItem('${escapeAttr(f.key)}',-1)">▲</button>
+        <button type="button" title="Turunkan" ${i===defs.length-1?"disabled":""} onclick="moveColumnOrderItem('${escapeAttr(f.key)}',1)">▼</button>
+      </div>
+    </div>`;
+  }).join("") || `<div style="font-size:11px;color:var(--muted);padding:10px;text-align:center">Tidak ada kolom yang cocok.</div>`;
+}
+function moveColumnOrderItem(key, delta){
+  const pkId = document.getElementById("columnOrder_packet").value;
+  const pk = getPacket(pkId);
+  if(!pk) return;
+  const order = pk.columnOrder.slice();
+  const i = order.indexOf(key);
+  const j = i + delta;
+  if(i<0 || j<0 || j>=order.length) return;
+  [order[i], order[j]] = [order[j], order[i]];
+  pk.columnOrder = order;
+  savePacketColumnOrder(pk);
+  buildTableHead(pk);
+  renderTable(pk);
+  renderColumnOrderList();
+}
+function resetColumnOrderFromModal(){
+  const pkId = document.getElementById("columnOrder_packet").value;
+  if(!pkId) return;
+  resetColumnOrder(pkId);
+  renderColumnOrderList();
+}
+function initColumnOrderModalDelegation(){
+  const list = document.getElementById("columnOrderList");
+  if(!list) return;
+  list.addEventListener("dragstart", (e)=>{
+    const item = e.target.closest(".colorder-item");
+    if(!item) return;
+    columnOrderDragKey = item.dataset.key;
+    item.classList.add("dragging");
+    if(e.dataTransfer){ e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", item.dataset.key); }
+  });
+  list.addEventListener("dragend", ()=>{
+    list.querySelectorAll(".colorder-item").forEach(el=>el.classList.remove("dragging","drag-over-top","drag-over-bottom"));
+    columnOrderDragKey = null;
+  });
+  list.addEventListener("dragover", (e)=>{
+    if(!columnOrderDragKey) return;
+    const item = e.target.closest(".colorder-item");
+    if(!item || item.dataset.key===columnOrderDragKey) return;
+    e.preventDefault();
+    if(e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    const rect = item.getBoundingClientRect();
+    const placeAfter = (e.clientY - rect.top) > rect.height/2;
+    list.querySelectorAll(".colorder-item").forEach(el=>el.classList.remove("drag-over-top","drag-over-bottom"));
+    item.classList.add(placeAfter ? "drag-over-bottom" : "drag-over-top");
+  });
+  list.addEventListener("drop", (e)=>{
+    if(!columnOrderDragKey) return;
+    const item = e.target.closest(".colorder-item");
+    if(!item){ columnOrderDragKey=null; return; }
+    e.preventDefault();
+    const targetKey = item.dataset.key;
+    const rect = item.getBoundingClientRect();
+    const placeAfter = (e.clientY - rect.top) > rect.height/2;
+    list.querySelectorAll(".colorder-item").forEach(el=>el.classList.remove("drag-over-top","drag-over-bottom"));
+    if(targetKey && targetKey !== columnOrderDragKey){
+      const pkId = document.getElementById("columnOrder_packet").value;
+      reorderColumnsDrag(pkId, columnOrderDragKey, targetKey, placeAfter);
+      renderColumnOrderList();
+    }
+    columnOrderDragKey = null;
+  });
+}
+
 document.addEventListener("DOMContentLoaded", ()=>{
   initAuthUI();
   buildForm();
   charts = loadCharts();
+  scorecards = loadScorecards();
   renderAllPacketShells();
   loadData();
   initPacketsContainerDelegation();
   initChartsDelegation();
+  initScorecardsDelegation();
+  initColumnOrderModalDelegation();
 });
 
 // Satu listener terpasang SEKALI di #packetsContainer (bukan per-tbody), supaya
@@ -1064,13 +1808,16 @@ function renderAllPacketShells(){
         <div class="packet-title">
           <span class="drag-handle" title="Seret untuk mengurutkan ulang">⠿</span>
           <span class="packet-icon">${pk.cfg.icon}</span><span id="title_${pk.id}">${escapeHtml(pk.tableTitle)}</span>
+          ${isForeignPacket(pk) ? `<span class="source-badge" title="Sumber data: sheet &quot;${escapeAttr(pk.sourceSheet)}&quot; (code.gs)">🗂️ sheet: ${escapeHtml(pk.sourceSheet)}</span>` : ""}
         </div>
         <div class="packet-actions">
           <div class="reorder-btns">
             <button type="button" title="Naikkan urutan" data-action="moveUp" data-packet="${pk.id}" ${idx===0?"disabled":""}>▲</button>
             <button type="button" title="Turunkan urutan" data-action="moveDown" data-packet="${pk.id}" ${idx===orderedPackets.length-1?"disabled":""}>▼</button>
           </div>
+          ${isForeignPacket(pk) ? `<button class="btn cyan" style="color:#004d4d" onclick="refreshPacketSource('${pk.id}')" title="Muat ulang data dari sheet ini">🔄 Muat Ulang</button>` : ""}
           <button class="btn teal" onclick="toggleColumnPanel('${pk.id}')">🧮 Pilih Kolom yang Ditampilkan</button>
+          <button class="btn cyan" onclick="openColumnOrderModal('${pk.id}')" style="color:#004d4d">↕️ Atur Urutan Kolom</button>
           <button class="btn purple" onclick="toggleColorPanel('${pk.id}')">🎨 Atur Warna Kolom</button>
           <button class="btn orange" onclick="openHeaderEditModal('${pk.id}')">✏️ Edit Header &amp; Judul Tabel</button>
           <button class="btn red" onclick="deletePacket('${pk.id}')" title="Hapus tabel ini">🗑️ Hapus Tabel</button>
@@ -1084,7 +1831,7 @@ function renderAllPacketShells(){
             <button class="miniBtn" onclick="resetColumnOrder('${pk.id}')">↺ Reset Urutan Kolom</button>
             <span class="colpanel-count" id="colpanelCount_${pk.id}"></span>
           </div>
-          <div style="font-size:10px;color:var(--muted);margin:-4px 0 8px">💡 Tips: seret judul kolom pada tabel di bawah untuk mengubah urutannya.</div>
+          <div style="font-size:10px;color:var(--muted);margin:-4px 0 8px">💡 Tips: untuk mengubah urutan kolom dengan lebih mudah, pakai tombol "↕️ Atur Urutan Kolom" di atas — tidak perlu lagi menyeret judul kolom yang kecil di tabel.</div>
           <div class="colpick-groups" id="colpickGroups_${pk.id}"></div>
         </section>
 
@@ -1119,6 +1866,9 @@ function renderAllPacketShells(){
     updateColpanelCount(pk);
     renderColorPickerGroups(pk);
     updateColorpanelCount(pk);
+    if(isForeignPacket(pk) && !pk._sourceLoaded){
+      refreshPacketSource(pk);
+    }
   });
 }
 
@@ -1231,17 +1981,183 @@ function resetFilters(){
 }
 
 function render(){
-  renderSummary();
+  renderScorecards();
   renderCharts();
   packets.forEach(pk=>renderTable(pk));
 }
-function renderSummary(){
-  document.getElementById("sumUnit").textContent=filteredData.length.toLocaleString("id-ID");
-  document.getElementById("sumTarget").textContent=money(sum("Target IDR"));
-  document.getElementById("sumRealisasi").textContent=money(sum("Realisasi H-1"));
-  document.getElementById("sumProyeksi").textContent=money(sum("Proyeksi Next Month"));
+// ============================================================
+// SCORECARD DINAMIS — bisa ditambah/dihapus, tiap kartu memilih
+// sendiri kolom sumber data + cara agregasinya. Nilai selalu dihitung
+// dari filteredData (mengikuti filter global yang sedang aktif).
+// ============================================================
+const SCORECARDS_KEY = "icms_multi_scorecards_v1";
+function defaultScorecards(){
+  return [
+    {id:"sc1", icon:"🏢", title:"Jumlah Unit", field:"__COUNT__", agg:"count", format:"number"},
+    {id:"sc2", icon:"🎯", title:"Total Target IDR", field:"Target IDR", agg:"sum", format:"money"},
+    {id:"sc3", icon:"✅", title:"Total Realisasi H-1", field:"Realisasi H-1", agg:"sum", format:"money"},
+    {id:"sc4", icon:"🔮", title:"Total Proyeksi Next Month", field:"Proyeksi Next Month", agg:"sum", format:"money"}
+  ];
 }
-function sum(field){return filteredData.reduce((a,r)=>a+(Number(r[field])||0),0)}
+let scorecards = [];
+function loadScorecards(){
+  try{
+    const raw = localStorage.getItem(SCORECARDS_KEY);
+    if(!raw) return defaultScorecards();
+    const saved = JSON.parse(raw);
+    return (Array.isArray(saved) && saved.length) ? saved : defaultScorecards();
+  }catch(e){ return defaultScorecards(); }
+}
+function saveScorecards(){ localStorage.setItem(SCORECARDS_KEY, JSON.stringify(scorecards)); }
+
+function computeScorecardValue(cfg){
+  if(cfg.field==="__COUNT__") return filteredData.length;
+  const values = filteredData.map(r=>Number(r[cfg.field])||0);
+  if(!values.length) return 0;
+  switch(cfg.agg){
+    case "avg": return values.reduce((a,b)=>a+b,0)/values.length;
+    case "min": return Math.min(...values);
+    case "max": return Math.max(...values);
+    case "count": return values.length;
+    case "sum": default: return values.reduce((a,b)=>a+b,0);
+  }
+}
+function formatScorecardValue(value, format){
+  if(format==="money") return money(value);
+  if(format==="percent") return num(value,2)+"%";
+  return num(value,0);
+}
+function scorecardFieldLabel(field){
+  if(field==="__COUNT__") return "Jumlah Baris";
+  const f = FIELD_DEFS.find(x=>x.key===field);
+  return f ? f.label : field;
+}
+function scorecardAggLabel(cfg){
+  if(cfg.field==="__COUNT__") return "";
+  return {sum:"Total",avg:"Rata-rata",min:"Minimum",max:"Maximum",count:"Jumlah Baris"}[cfg.agg] || "";
+}
+
+const SCORECARD_STYLE_DEFAULT = { bgColor:"#FFFFFF", textColor:"#0B3C55", valueSize:21, labelSize:11, cardSize:"md" };
+const SCORECARD_CARD_SIZE_MAP = {
+  sm:{minWidth:"130px",padding:"10px 12px"},
+  md:{minWidth:"160px",padding:"13px 15px"},
+  lg:{minWidth:"200px",padding:"16px 18px"},
+  xl:{minWidth:"240px",padding:"20px 22px"}
+};
+function getScorecardStyle(cfg){ return Object.assign({}, SCORECARD_STYLE_DEFAULT, cfg.style||{}); }
+
+function renderScorecards(){
+  const container = document.getElementById("scorecardsContainer");
+  if(!scorecards.length){
+    container.innerHTML = `<div class="scorecard-empty-state">Belum ada scorecard. Klik "➕ Tambah Scorecard" untuk membuat scorecard pertama.</div>`;
+    return;
+  }
+  container.innerHTML = `<section class="summary">${scorecards.map(cfg=>{
+    const value = computeScorecardValue(cfg);
+    const aggLabel = scorecardAggLabel(cfg);
+    const st = getScorecardStyle(cfg);
+    const sizeCfg = SCORECARD_CARD_SIZE_MAP[st.cardSize] || SCORECARD_CARD_SIZE_MAP.md;
+    const cardStyle = `background:${escapeAttr(st.bgColor)};min-width:${sizeCfg.minWidth};padding:${sizeCfg.padding}`;
+    const labelStyle = `color:${escapeAttr(st.textColor)};font-size:${Number(st.labelSize)||11}px`;
+    const valueStyle = `color:${escapeAttr(st.textColor)};font-size:${Number(st.valueSize)||21}px`;
+    return `<div class="card" style="${cardStyle}">
+      <div class="card-actions">
+        <button data-sc-action="edit" data-sc-id="${escapeAttr(cfg.id)}" title="Edit scorecard">✏️</button>
+        <button data-sc-action="delete" data-sc-id="${escapeAttr(cfg.id)}" title="Hapus scorecard">🗑️</button>
+      </div>
+      <div class="label" style="${labelStyle}">${escapeHtml(cfg.icon||"")} ${escapeHtml(cfg.title)}${aggLabel?` <span style="opacity:.7">(${escapeHtml(aggLabel)})</span>`:""}</div>
+      <div class="value" style="${valueStyle}">${formatScorecardValue(value, cfg.format)}</div>
+    </div>`;
+  }).join("")}</section>`;
+}
+
+function onScorecardFieldChange(){
+  const field = document.getElementById("sc_field").value;
+  document.getElementById("sc_agg_section").classList.toggle("hidden", field==="__COUNT__");
+}
+function populateScorecardFieldSelect(selectedField){
+  const sel = document.getElementById("sc_field");
+  let html = `<option value="__COUNT__">🔢 Jumlah Baris (Count Unit)</option>`;
+  GROUPS.forEach(g=>{
+    const fields = FIELD_DEFS.filter(f=>f.group===g && f.type==="number");
+    if(!fields.length) return;
+    html += `<optgroup label="${escapeAttr(g)}">${fields.map(f=>`<option value="${escapeAttr(f.key)}">${escapeHtml(f.label)}</option>`).join("")}</optgroup>`;
+  });
+  sel.innerHTML = html;
+  sel.value = selectedField || "__COUNT__";
+}
+function fillScorecardStyleFields(style){
+  const st = Object.assign({}, SCORECARD_STYLE_DEFAULT, style||{});
+  setColorValue("sc_bgColor","sc_bgColor_hex", st.bgColor);
+  setColorValue("sc_textColor","sc_textColor_hex", st.textColor);
+  document.getElementById("sc_valueSize").value = st.valueSize;
+  document.getElementById("sc_labelSize").value = st.labelSize;
+  document.getElementById("sc_cardSize").value = st.cardSize;
+}
+function resetScorecardStyle(){ fillScorecardStyleFields(SCORECARD_STYLE_DEFAULT); }
+function openScorecardModal(scId){
+  const existing = scId ? scorecards.find(c=>c.id===scId) : null;
+  const cfg = existing || { id:"sc"+Date.now(), icon:"🔖", title:"", field:"__COUNT__", agg:"sum", format:"money", style:{} };
+  document.getElementById("scorecardModalTitle").textContent = existing ? "🧾 Edit Scorecard" : "🧾 Tambah Scorecard";
+  document.getElementById("sc_id").value = existing ? existing.id : "";
+  document.getElementById("sc_icon").value = cfg.icon || "";
+  document.getElementById("sc_title").value = cfg.title || "";
+  populateScorecardFieldSelect(cfg.field);
+  document.getElementById("sc_agg").value = cfg.agg || "sum";
+  document.getElementById("sc_format").value = cfg.format || "money";
+  fillScorecardStyleFields(cfg.style);
+  onScorecardFieldChange();
+  document.getElementById("scorecardModal").dataset.newId = existing ? "" : cfg.id;
+  document.getElementById("scorecardModal").classList.remove("hidden");
+}
+function closeScorecardModal(){ document.getElementById("scorecardModal").classList.add("hidden"); }
+function saveScorecardModal(){
+  const existingId = document.getElementById("sc_id").value;
+  const newId = document.getElementById("scorecardModal").dataset.newId;
+  const id = existingId || newId;
+  const field = document.getElementById("sc_field").value;
+  const title = document.getElementById("sc_title").value.trim() || scorecardFieldLabel(field);
+
+  const style = {
+    bgColor: normalizeHex(document.getElementById("sc_bgColor").value, SCORECARD_STYLE_DEFAULT.bgColor),
+    textColor: normalizeHex(document.getElementById("sc_textColor").value, SCORECARD_STYLE_DEFAULT.textColor),
+    valueSize: Number(document.getElementById("sc_valueSize").value) || SCORECARD_STYLE_DEFAULT.valueSize,
+    labelSize: Number(document.getElementById("sc_labelSize").value) || SCORECARD_STYLE_DEFAULT.labelSize,
+    cardSize: document.getElementById("sc_cardSize").value || SCORECARD_STYLE_DEFAULT.cardSize
+  };
+
+  const cfg = {
+    id,
+    icon: document.getElementById("sc_icon").value.trim(),
+    title,
+    field,
+    agg: document.getElementById("sc_agg").value,
+    format: document.getElementById("sc_format").value,
+    style
+  };
+  const idx = scorecards.findIndex(c=>c.id===id);
+  if(idx>=0){ scorecards[idx] = cfg; } else { scorecards.push(cfg); }
+  saveScorecards();
+  closeScorecardModal();
+  renderScorecards();
+  showAlert("Scorecard \""+cfg.title+"\" berhasil disimpan.","success");
+}
+function deleteScorecard(id){
+  if(!confirm("Hapus scorecard ini?")) return;
+  scorecards = scorecards.filter(c=>c.id!==id);
+  saveScorecards();
+  renderScorecards();
+}
+function initScorecardsDelegation(){
+  document.getElementById("scorecardsContainer").addEventListener("click",(e)=>{
+    const btn = e.target.closest("button[data-sc-action]");
+    if(!btn) return;
+    const action = btn.dataset.scAction;
+    const id = btn.dataset.scId;
+    if(action==="edit") openScorecardModal(id);
+    else if(action==="delete") deleteScorecard(id);
+  });
+}
 
 // ============================================================
 // HEADER & BODY TABEL — dibangun per paket berdasarkan pk.visibleCols,
@@ -1270,10 +2186,13 @@ function buildTableHead(pk){
 }
 
 function renderTable(pk){
-  const start=(pk.currentPage-1)*PAGE_SIZE, end=Math.min(start+PAGE_SIZE,filteredData.length);
-  const rows=filteredData.slice(start,end);
+  const foreign = isForeignPacket(pk);
+  const sourceData = foreign ? (pk.sourceRows||[]) : filteredData;
+  const start=(pk.currentPage-1)*PAGE_SIZE, end=Math.min(start+PAGE_SIZE,sourceData.length);
+  const rows=sourceData.slice(start,end);
   const tbody=document.getElementById("tbody_"+pk.id);
-  const colCount = FIELD_DEFS.length+2;
+  const colCount = fieldDefsOf(pk).length+2;
+  const emptyMsg = foreign ? `Belum ada data di sheet "${escapeHtml(pk.sourceSheet)}", atau sedang dimuat.` : "Tidak ada data untuk filter saat ini.";
   tbody.innerHTML = rows.length ? rows.map((r,i)=>{
     const rk = r.__rowKey || String(r.id ?? ("local_"+(start+i)));
     const st = pk.rowStyles[rk] || {};
@@ -1285,12 +2204,11 @@ function renderTable(pk){
     if(st.height) styleParts.push(`height:${st.height}px`);
     const styleAttr = styleParts.length ? ` style="${escapeAttr(styleParts.join(";"))}"` : "";
     const cells = getOrderedFieldDefs(pk).map(f=>{
-      let v = r[f.key];
-      v = f.type==="number" ? num(v,0) : escapeHtml(v);
-      const cls = ["td"];
-      if(f.key==="Anggaran UNIT") cls.push("left");
-      if(!pk.visibleCols.has(f.key)) cls.push("col-hidden");
       const colSt = pk.colStyles[f.key] || {};
+      let v = formatCellValue(r[f.key], f, colSt);
+      const cls = ["td"];
+      if(!foreign && f.key==="Anggaran UNIT") cls.push("left");
+      if(!pk.visibleCols.has(f.key)) cls.push("col-hidden");
       const merged = {
         bg: st.bg !== undefined ? st.bg : colSt.bg,
         color: st.color !== undefined ? st.color : colSt.color,
@@ -1316,24 +2234,26 @@ function renderTable(pk){
       ${cells}
       <td class="sticky-col action-col"${styleAttr}>
         <button class="icon-btn format" title="Format baris (warna, ukuran teks, bold, tinggi) — khusus paket ini" data-action="format" data-packet="${pk.id}" data-rowkey="${escapeAttr(rk)}">🎨</button>
-        <button class="icon-btn edit" data-action="edit" data-packet="${pk.id}" data-rowkey="${escapeAttr(rk)}">✏️</button>
-        <button class="icon-btn delete" data-action="delete" data-packet="${pk.id}" data-rowkey="${escapeAttr(rk)}">🗑️</button>
+        ${foreign ? "" : `<button class="icon-btn edit" data-action="edit" data-packet="${pk.id}" data-rowkey="${escapeAttr(rk)}">✏️</button>
+        <button class="icon-btn delete" data-action="delete" data-packet="${pk.id}" data-rowkey="${escapeAttr(rk)}">🗑️</button>`}
       </td>
     </tr>`;
-  }).join("") : `<tr><td colspan="${colCount}" style="padding:20px;color:#4b6f6a">Tidak ada data untuk filter saat ini.</td></tr>`;
+  }).join("") : `<tr><td colspan="${colCount}" style="padding:20px;color:#4b6f6a">${emptyMsg}</td></tr>`;
 
   rows.forEach((r,i)=>{
     const rk = r.__rowKey || String(r.id ?? ("local_"+(start+i)));
     rowDataMap.set(rk, r);
   });
 
-  document.getElementById("pageInfo_"+pk.id).textContent=`Menampilkan ${filteredData.length?start+1:0}–${end} dari ${filteredData.length.toLocaleString("id-ID")} data • Halaman ${pk.currentPage}`;
+  const sourceLabel = foreign ? ` (sheet: ${escapeHtml(pk.sourceSheet)})` : "";
+  document.getElementById("pageInfo_"+pk.id).textContent=`Menampilkan ${sourceData.length?start+1:0}–${end} dari ${sourceData.length.toLocaleString("id-ID")} data${sourceLabel} • Halaman ${pk.currentPage}`;
   document.getElementById("prevBtn_"+pk.id).disabled=pk.currentPage<=1;
-  document.getElementById("nextBtn_"+pk.id).disabled=end>=filteredData.length;
+  document.getElementById("nextBtn_"+pk.id).disabled=end>=sourceData.length;
 }
 function changePage(pkId, delta){
   const pk = getPacket(pkId);
-  const max=Math.max(1,Math.ceil(filteredData.length/PAGE_SIZE));
+  const len = isForeignPacket(pk) ? (pk.sourceRows||[]).length : filteredData.length;
+  const max=Math.max(1,Math.ceil(len/PAGE_SIZE));
   pk.currentPage=Math.min(max,Math.max(1,pk.currentPage+delta));
   renderTable(pk);
 }
@@ -1354,12 +2274,13 @@ function openFormat(pkId, id){
   document.getElementById("fmt_label_section").classList.add("hidden");
   document.getElementById("fmt_align_section").classList.remove("hidden");
   document.getElementById("fmt_wrap_section").classList.add("hidden");
+  document.getElementById("fmt_dataformat_section").classList.add("hidden");
   document.getElementById("fmt_id").value = id;
   document.getElementById("formatModal").classList.remove("hidden");
 }
 function openColumnFormat(pkId, key){
   const pk = getPacket(pkId);
-  const def = FIELD_DEFS.find(f=>f.key===key);
+  const def = fieldDefsOf(pk).find(f=>f.key===key);
   document.getElementById("fmt_packet").value = pkId;
   document.getElementById("fmt_type").value = "col";
   document.getElementById("formatModalTitle").textContent = "🎨 Format Sel Kolom: " + (def ? def.label : key) + " — " + pk.tableTitle;
@@ -1369,12 +2290,14 @@ function openColumnFormat(pkId, key){
   document.getElementById("fmt_label_section").classList.add("hidden");
   document.getElementById("fmt_align_section").classList.remove("hidden");
   document.getElementById("fmt_wrap_section").classList.remove("hidden");
+  document.getElementById("fmt_dataformat_section").classList.remove("hidden");
+  document.getElementById("fmt_dataformat").value = (pk.colStyles[key] || {}).dataFormat || "";
   document.getElementById("fmt_id").value = key;
   document.getElementById("formatModal").classList.remove("hidden");
 }
 function openHeaderFormat(pkId, key){
   const pk = getPacket(pkId);
-  const def = FIELD_DEFS.find(f=>f.key===key);
+  const def = fieldDefsOf(pk).find(f=>f.key===key);
   const hs = pk.colHeaderStyles[key] || {};
   document.getElementById("fmt_packet").value = pkId;
   document.getElementById("fmt_type").value = "header";
@@ -1385,6 +2308,7 @@ function openHeaderFormat(pkId, key){
   document.getElementById("fmt_label_section").classList.remove("hidden");
   document.getElementById("fmt_align_section").classList.add("hidden");
   document.getElementById("fmt_wrap_section").classList.add("hidden");
+  document.getElementById("fmt_dataformat_section").classList.add("hidden");
   document.getElementById("fmt_label").value = hs.label || "";
   document.getElementById("fmt_id").value = key;
   document.getElementById("formatModal").classList.remove("hidden");
@@ -1499,6 +2423,8 @@ function saveFormat(){
   if(type==="col"){
     if(document.getElementById("fmt_use_width").checked) style.width = Number(document.getElementById("fmt_width").value) || 120;
     if(document.getElementById("fmt_wrap").checked) style.wrap = true;
+    const dataFormatVal = document.getElementById("fmt_dataformat").value;
+    if(dataFormatVal) style.dataFormat = dataFormatVal;
     if(Object.keys(style).length){ pk.colStyles[id] = style; } else { delete pk.colStyles[id]; }
     savePacketColStyles(pk);
     buildTableHead(pk); renderColorPickerGroups(pk); updateColorpanelCount(pk);
@@ -1544,8 +2470,8 @@ function toggleColorPanel(pkId){
 }
 function renderColorPickerGroups(pk){
   const wrap = document.getElementById("colorpickGroups_"+pk.id);
-  wrap.innerHTML = GROUPS.map(g=>{
-    const fields = FIELD_DEFS.filter(f=>f.group===g);
+  wrap.innerHTML = groupsOf(pk).map(g=>{
+    const fields = fieldDefsOf(pk).filter(f=>f.group===g);
     return `<div class="colpick-group">
       <div class="colpick-group-title"><span>${escapeHtml(g)}</span></div>
       <div class="colpick-list">
@@ -1569,7 +2495,7 @@ function renderColorPickerGroups(pk){
 }
 function updateColorpanelCount(pk){
   const el = document.getElementById("colorpanelCount_"+pk.id);
-  if(el) el.textContent = `🟢 ${Object.keys(pk.colStyles).length} kolom (sel) • 🔵 ${Object.keys(pk.colHeaderStyles).length} kolom (header) dari ${FIELD_DEFS.length} kolom dikustomisasi`;
+  if(el) el.textContent = `🟢 ${Object.keys(pk.colStyles).length} kolom (sel) • 🔵 ${Object.keys(pk.colHeaderStyles).length} kolom (header) dari ${fieldDefsOf(pk).length} kolom dikustomisasi`;
 }
 function clearColumnFormat(pkId, key){
   const pk = getPacket(pkId);
@@ -1596,8 +2522,8 @@ function openHeaderEditModal(pkId){
 function closeHeaderEditModal(){ document.getElementById("headerEditModal").classList.add("hidden"); }
 function renderHeaderEditGroups(pk){
   const wrap = document.getElementById("headerEditGroups");
-  wrap.innerHTML = GROUPS.map(g=>{
-    const fields = FIELD_DEFS.filter(f=>f.group===g);
+  wrap.innerHTML = groupsOf(pk).map(g=>{
+    const fields = fieldDefsOf(pk).filter(f=>f.group===g);
     return `<div class="colpick-group">
       <div class="colpick-group-title">${escapeHtml(g)}</div>
       <div style="display:flex;flex-direction:column;gap:6px">
@@ -1680,8 +2606,8 @@ function toggleColumnPanel(pkId){
 }
 function renderColumnPickerGroups(pk){
   const wrap = document.getElementById("colpickGroups_"+pk.id);
-  wrap.innerHTML = GROUPS.map(g=>{
-    const fields = FIELD_DEFS.filter(f=>f.group===g);
+  wrap.innerHTML = groupsOf(pk).map(g=>{
+    const fields = fieldDefsOf(pk).filter(f=>f.group===g);
     return `<div class="colpick-group">
       <div class="colpick-group-title">
         <span>${escapeHtml(g)}</span>
@@ -1701,7 +2627,7 @@ function renderColumnPickerGroups(pk){
 }
 function updateColpanelCount(pk){
   const el = document.getElementById("colpanelCount_"+pk.id);
-  if(el) el.textContent = `${pk.visibleCols.size} dari ${FIELD_DEFS.length} kolom ditampilkan`;
+  if(el) el.textContent = `${pk.visibleCols.size} dari ${fieldDefsOf(pk).length} kolom ditampilkan`;
 }
 function onColCheck(pkId, key, checked){
   const pk = getPacket(pkId);
@@ -1711,7 +2637,7 @@ function onColCheck(pkId, key, checked){
 }
 function toggleGroupColumns(pkId, group, show){
   const pk = getPacket(pkId);
-  FIELD_DEFS.filter(f=>f.group===group).forEach(f=>{
+  fieldDefsOf(pk).filter(f=>f.group===group).forEach(f=>{
     if(show) pk.visibleCols.add(f.key); else pk.visibleCols.delete(f.key);
   });
   savePacketVisibleCols(pk);
@@ -1719,7 +2645,7 @@ function toggleGroupColumns(pkId, group, show){
 }
 function toggleAllColumns(pkId, show){
   const pk = getPacket(pkId);
-  pk.visibleCols = show ? new Set(FIELD_DEFS.map(f=>f.key)) : new Set();
+  pk.visibleCols = show ? new Set(fieldDefsOf(pk).map(f=>f.key)) : new Set();
   savePacketVisibleCols(pk);
   renderColumnPickerGroups(pk); buildTableHead(pk); renderTable(pk); updateColpanelCount(pk);
 }
@@ -1820,6 +2746,18 @@ function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;",
 function escapeAttr(v){return String(v??"").replace(/'/g,"\\'").replace(/"/g,'&quot;')}
 function num(v,d=0){return Number(v||0).toLocaleString("id-ID",{minimumFractionDigits:d,maximumFractionDigits:d})}
 function money(v){return "Rp "+Number(v||0).toLocaleString("id-ID",{maximumFractionDigits:0})}
+// Format tampilan nilai sel sesuai pilihan "Format Tampilan Data" per kolom (colSt.dataFormat).
+// Jika kolom tidak diatur khusus, jatuh kembali ke tipe bawaan kolom (f.type: number/text).
+function formatCellValue(v, f, colSt){
+  const fmt = (colSt && colSt.dataFormat) || (f.type==="number" ? "number" : "text");
+  switch(fmt){
+    case "money": return money(v);
+    case "percent": return num(v,2)+"%";
+    case "decimal2": return num(v,2);
+    case "number": return num(v,0);
+    case "text": default: return escapeHtml(v);
+  }
+}
 </script>
 </body>
 </html>
