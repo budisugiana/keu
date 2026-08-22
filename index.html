@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Summary — ICMS (5 Paket Tabel)</title>
+    <title>Summary — Rencana Kerja & Realisasi</title>
     <script>
         (function () {
             const raw = sessionStorage.getItem("icms_session");
@@ -1309,29 +1309,36 @@
     <div class="app-shell">
         <aside class="sidebar">
             <div class="brand">
-                <div class="brand-mark">LSV 11.11</div>
+                <div class="brand-mark">LSV</div>
                 <div>
-                    <div class="brand-title">ICMS</div>
-                    <div class="brand-subtitle">Training Management</div>
+                    <div class="brand-title">Kartu Kontrol</div>
+                    <div class="brand-subtitle">Budget Monitoring</div>
                 </div>
             </div>
             <hr>
             <nav>
-                <a href="index.html">📋 Rencana Kelas</a>
-                <a href="learning_plan.html">🧭 Learning Plan Realisasi</a>
-                <a href="rekap_program.html">🗂️ Rekap Program</a>
-                <a href="pengeluaran.html">💸 Pengeluaran</a>
-                <a href="keu_smarter.html">📈 Keu-Smarter</a>
-                <a href="keu_portal.html">🏦 Keu-Portal</a>
-                <a class="active" href="summary.html">📊 Summary</a>
-                <a href="#" onclick="return false">👥 Peserta</a>
-                <a href="#" onclick="return false">🎓 Sertifikat</a>
-                <a id="navUsers" href="users.html" style="display:none">🔐 Kelola User</a>
+                <a class="active" href="index.html">▦ SUMMARY</a>
+                <a href="rka.html">▤ RENCANA KERJA ANGGARAN</a>
+                <a href="createkelas.html">⊞ PEMBUATAN KELAS</a>
+                <a href="konfirmasiprogram.html">☑ KONFIRMASI PROGRAM (UIC)</a>
+                <a href="pengeluaran.html">⛃ KONFIRMASI PEMBUKUAN (OSB)</a>
+                <a href="keu_smarter.html" style="padding-left:32px">↳ SMARTER</a>
+                <a href="keu_portal.html" style="padding-left:32px">↳ PORTAL</a>
+                <a id="navUsers" href="users.html" style="display:none">⚿ KELOLA USER</a>
             </nav>
             <div class="sidebar-bottom">
                 <div class="small" id="whoami" style="margin-bottom:8px">Memuat...</div>
-                <div
-                    style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;border-top:1px solid rgba(255,255,255,.15);padding-top:8px">
+                
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);">
+                    <span style="font-size:11px;font-weight:600;opacity:0.8">◚ Ukuran Font</span>
+                    <div style="display:flex;gap:4px">
+                        <button onclick="changeFontSize(-1)" class="edit-toggle-btn active" style="padding:2px 6px;font-size:11px;border-radius:4px" title="Perkecil Text">A-</button>
+                        <button onclick="changeFontSize(1)" class="edit-toggle-btn active" style="padding:2px 6px;font-size:11px;border-radius:4px" title="Perbesar Text">A+</button>
+                    </div>
+                </div>
+
+                <div id="adminEditPanel"
+                    style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;border-top:1px solid rgba(255,255,255,.0);padding-top:0px">
                     <span style="font-size:11px;font-weight:600;opacity:0.8">🛠️ Panel Edit</span>
                     <button id="globalEditToggleBtn" class="edit-toggle-btn active" onclick="toggleAllEditPanels()"
                         style="padding:5px 8px;font-size:10px;border-radius:5px"
@@ -1909,7 +1916,14 @@
     <script>
         // ============================================================
         // KONFIGURASI API — satu sumber data untuk semua paket tabel
-        // ============================================================
+        let _currentZoom = 1;
+        function changeFontSize(step) {
+            _currentZoom += step * 0.05;
+            if (_currentZoom < 0.7) _currentZoom = 0.7;
+            if (_currentZoom > 1.4) _currentZoom = 1.4;
+            document.querySelector('.main').style.zoom = _currentZoom;
+        }
+
         const API_URL = "https://script.google.com/macros/s/AKfycbyJoZ2eU7rcPjoiQDERgrwAu2_wSL-AQ9wP46-7neFspaXYIVHDyD4F1p6q4XCBWVMx/exec";
         const API_KEY = "2026-BNU-KARTUKONTROL";
         const SHEET_NAME = "summary";
@@ -2069,11 +2083,11 @@
                 display,
                 labels: {
                     font: { size: fontSize },
-                    generateLabels: function(chart) {
+                    generateLabels: function (chart) {
                         let original = [];
                         try {
                             original = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-                        } catch(e) { return []; }
+                        } catch (e) { return []; }
                         original.forEach(label => {
                             if (['pie', 'doughnut', 'polarArea'].includes(chart.config.type)) {
                                 const val = chart.data.datasets[0].data[label.index];
@@ -2994,9 +3008,16 @@
             const s = getSession();
             if (!s) { window.location.href = "login.html"; return; }
             document.getElementById("whoami").textContent = s.username + " (" + s.role + ")";
+
+            const adminMenu = document.getElementById("adminEditPanel");
             if (s.role === "admin") {
                 const el = document.getElementById("navUsers");
                 if (el) el.style.display = "";
+                if (adminMenu) adminMenu.style.display = "flex";
+                toggleAllEditPanels(true);
+            } else {
+                if (adminMenu) adminMenu.style.display = "none";
+                toggleAllEditPanels(false);
             }
         }
         function handleAuthError(msg) {
@@ -3536,8 +3557,10 @@
         // di seluruh halaman dengan satu klik.
         // ============================================================
         let _editPanelsVisible = true;
-        function toggleAllEditPanels() {
-            _editPanelsVisible = !_editPanelsVisible;
+        function toggleAllEditPanels(force) {
+            if (typeof force === "boolean") _editPanelsVisible = force;
+            else _editPanelsVisible = !_editPanelsVisible;
+
             const btn = document.getElementById("globalEditToggleBtn");
             // Selector untuk semua area edit: kartu scorecard, grafik, paket tabel, tombol icon-btn
             const editSelectors = [
