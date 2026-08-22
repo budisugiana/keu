@@ -255,29 +255,194 @@
             color: #fff
         }
 
-        .edit-toggle-btn{cursor:pointer;border:0;border-radius:7px;padding:7px 14px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:#0b3c55;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18);transition:background .15s}.edit-toggle-btn:hover{background:#17688a}.edit-toggle-btn.active{background:#007474}
-        .sc-row-filter-list{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;padding:4px 2px;border:1px solid var(--border);border-radius:7px;background:#fff;margin-top:6px}
-        .sc-row-filter-list label{display:flex;align-items:center;gap:7px;padding:3px 8px;font-size:11px;color:var(--text);cursor:pointer;border-radius:5px;transition:background .1s}
-        .sc-row-filter-list label:hover{background:#e6f4f1}
-        .sc-row-filter-list input[type=checkbox]{accent-color:var(--accent);width:12px;height:12px;flex:0 0 12px}
-        .sc-row-filter-actions{display:flex;gap:6px;margin-top:5px}
-        .sc-row-filter-actions button{flex:1;font-size:10px;padding:3px 0;background:#fff;border:1px solid var(--border);border-radius:5px;color:var(--accent);cursor:pointer;font-weight:600}
-        .sc-row-filter-actions button:hover{background:#e6f4f1}
+        .edit-toggle-btn {
+            cursor: pointer;
+            border: 0;
+            border-radius: 7px;
+            padding: 7px 14px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #0b3c55;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
+            transition: background .15s
+        }
+
+        .edit-toggle-btn:hover {
+            background: #17688a
+        }
+
+        .edit-toggle-btn.active {
+            background: #007474
+        }
+
+        .sc-row-filter-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 180px;
+            overflow-y: auto;
+            padding: 4px 2px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: #fff;
+            margin-top: 6px
+        }
+
+        .sc-row-filter-list label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 3px 8px;
+            font-size: 11px;
+            color: var(--text);
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background .1s
+        }
+
+        .sc-row-filter-list label:hover {
+            background: #e6f4f1
+        }
+
+        .sc-row-filter-list input[type=checkbox] {
+            accent-color: var(--accent);
+            width: 12px;
+            height: 12px;
+            flex: 0 0 12px
+        }
+
+        .sc-row-filter-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 5px
+        }
+
+        .sc-row-filter-actions button {
+            flex: 1;
+            font-size: 10px;
+            padding: 3px 0;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            color: var(--accent);
+            cursor: pointer;
+            font-weight: 600
+        }
+
+        .sc-row-filter-actions button:hover {
+            background: #e6f4f1
+        }
+
         /* ==== Floating Edit Toggle Panel ==== */
-        #floatingEditPanel{position:fixed;bottom:20px;left:270px;z-index:900;display:flex;align-items:center;gap:8px;background:rgba(11,60,85,.92);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px 14px;box-shadow:0 4px 18px rgba(0,0,0,.25);transition:left .2s}
-        @media(max-width:900px){#floatingEditPanel{left:220px}}
-        @media(max-width:650px){#floatingEditPanel{left:10px;bottom:14px}}
-        #floatingEditPanel span{font-size:10.5px;color:rgba(255,255,255,.75);font-weight:600;white-space:nowrap}
+        #floatingEditPanel {
+            position: fixed;
+            bottom: 20px;
+            left: 270px;
+            z-index: 900;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(11, 60, 85, .92);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, .15);
+            border-radius: 10px;
+            padding: 8px 14px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, .25);
+            transition: left .2s
+        }
+
+        @media(max-width:900px) {
+            #floatingEditPanel {
+                left: 220px
+            }
+        }
+
+        @media(max-width:650px) {
+            #floatingEditPanel {
+                left: 10px;
+                bottom: 14px
+            }
+        }
+
+        #floatingEditPanel span {
+            font-size: 10.5px;
+            color: rgba(255, 255, 255, .75);
+            font-weight: 600;
+            white-space: nowrap
+        }
+
         /* ==== Multi-metric scorecard ==== */
-        .sc-metric-list{display:flex;flex-direction:column;gap:8px;margin-top:6px}
-        .sc-metric-row{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #cfe9e4;border-radius:8px;padding:7px 9px;flex-wrap:wrap}
-        .sc-metric-row select{flex:1;min-width:110px;border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:11px;color:var(--text);background:#f7fdfc}
-        .sc-metric-row .sc-m-del{border:0;background:#fee2e2;color:#dc2626;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;flex-shrink:0}
-        .sc-metric-row .sc-m-del:hover{background:#fecaca}
-        .sc-metric-value-row{display:flex;align-items:baseline;gap:6px;margin-top:2px;padding:2px 4px}
-        .sc-metric-value-row .sc-mv-label{font-size:10px;color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .sc-metric-value-row .sc-mv-value{font-weight:700;color:var(--dark)}
-        
+        .sc-metric-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 6px
+        }
+
+        .sc-metric-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #fff;
+            border: 1px solid #cfe9e4;
+            border-radius: 8px;
+            padding: 7px 9px;
+            flex-wrap: wrap
+        }
+
+        .sc-metric-row select {
+            flex: 1;
+            min-width: 110px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 5px 6px;
+            font-size: 11px;
+            color: var(--text);
+            background: #f7fdfc
+        }
+
+        .sc-metric-row .sc-m-del {
+            border: 0;
+            background: #fee2e2;
+            color: #dc2626;
+            border-radius: 5px;
+            padding: 3px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            flex-shrink: 0
+        }
+
+        .sc-metric-row .sc-m-del:hover {
+            background: #fecaca
+        }
+
+        .sc-metric-value-row {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            margin-top: 2px;
+            padding: 2px 4px
+        }
+
+        .sc-metric-value-row .sc-mv-label {
+            font-size: 10px;
+            color: var(--muted);
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .sc-metric-value-row .sc-mv-value {
+            font-weight: 700;
+            color: var(--dark)
+        }
+
         .sc-row-filter-actions {
             display: flex;
             gap: 6px;
@@ -1437,19 +1602,8 @@
                     <button type="button" class="miniBtn" onclick="addScorecardMetric()">➕ Tambah Data</button>
                 </div>
                 <div class="sc-metric-list" id="sc_metricList"></div>
-                <div style="margin-top:6px;font-size:10px;color:var(--muted)">Tambah lebih dari satu kolom agar satu kartu menampilkan beberapa nilai sekaligus.</div>
-            </div>
-
-            <div class="form-section" id="sc_rowfilter_section">
-                <div class="form-section-title">Filter Baris yang Dihitung <span
-                        style="font-weight:400;font-size:10px;color:var(--muted);text-transform:none">(centang baris
-                        yang ikut dihitung, kosongkan = semua)</span></div>
-                <div class="sc-row-filter-actions">
-                    <button type="button" onclick="scRowFilterSelectAll()">✔ Pilih Semua</button>
-                    <button type="button" onclick="scRowFilterClearAll()">✕ Hapus Semua</button>
-                </div>
-                <div class="sc-row-filter-list" id="sc_rowFilterList"></div>
-                <div style="margin-top:6px;font-size:10px;color:var(--muted)" id="sc_rowfilter_hint">Semua baris dipilih (default)</div>
+                <div style="margin-top:6px;font-size:10px;color:var(--muted)">Tambah lebih dari satu kolom agar satu
+                    kartu menampilkan beberapa nilai sekaligus. Tiap data bisa difilter barisnya.</div>
             </div>
 
             <div class="form-section">
@@ -1505,7 +1659,8 @@
                     </select>
                 </div>
                 <div style="margin-top:10px">
-                    <button class="miniBtn" type="button" onclick="resetScorecardStyle()">↺ Reset Tampilan ke Default</button>
+                    <button class="miniBtn" type="button" onclick="resetScorecardStyle()">↺ Reset Tampilan ke
+                        Default</button>
                 </div>
             </div>
 
@@ -1906,7 +2061,6 @@
                 const rowCharts = charts.filter(cfg => (Number(cfg.row) || 1) === rowNum);
                 if (!rowCharts.length) return "";
                 return `<div class="chart-row" data-chart-row="${rowNum}">
-      <div class="chart-row-label">Baris Grafik ${rowNum}</div>
       <div class="charts-grid">${rowCharts.map(cfg => `
         <div class="chart-card" data-chart-id="${escapeAttr(cfg.id)}">
           <div class="chart-card-header">
@@ -3096,13 +3250,14 @@
         // computeScorecardValue(cfg, metric?) — metric overrides cfg.field/agg if provided
         function computeScorecardValue(cfg, metric) {
             const field = metric ? metric.field : (cfg.field || '__COUNT__');
-            const agg   = metric ? metric.agg   : (cfg.agg   || 'sum');
-            // rowFilter applies at cfg level, filters rows for all metrics
+            const agg = metric ? metric.agg : (cfg.agg || 'sum');
+            const metricRowFilter = metric ? metric.rowFilter : (cfg.rowFilter || []);
+            // rowFilter applies at metric level
             let rows = filteredData;
-            if (cfg.rowFilter && cfg.rowFilter.length > 0) {
+            if (metricRowFilter && metricRowFilter.length > 0) {
                 const labelKey = FIELD_DEFS.length ? FIELD_DEFS[0].key : null;
                 if (labelKey) {
-                    const set = new Set(cfg.rowFilter);
+                    const set = new Set(metricRowFilter);
                     rows = filteredData.filter(r => set.has(String(r[labelKey] ?? "")));
                 }
             }
@@ -3151,17 +3306,17 @@
                 const st = getScorecardStyle(cfg);
                 const sizeCfg = SCORECARD_CARD_SIZE_MAP[st.cardSize] || SCORECARD_CARD_SIZE_MAP.md;
                 const cardStyle = `background:${escapeAttr(st.bgColor)};min-width:${sizeCfg.minWidth};padding:${sizeCfg.padding}`;
-                const labelStyle = `color:${escapeAttr(st.textColor)};font-size:${Number(st.labelSize)||11}px`;
-                const valueStyle = `color:${escapeAttr(st.textColor)};font-size:${Number(st.valueSize)||21}px;font-weight:700`;
+                const labelStyle = `color:${escapeAttr(st.textColor)};font-size:${Number(st.labelSize) || 11}px`;
+                const valueStyle = `color:${escapeAttr(st.textColor)};font-size:${Number(st.valueSize) || 21}px;font-weight:700`;
                 // Multi-metric support: cfg.metrics = [{field,agg,format,label}]
                 const metrics = (cfg.metrics && cfg.metrics.length) ? cfg.metrics
-                    : [{field: cfg.field||'__COUNT__', agg: cfg.agg||'sum', format: cfg.format||'number', label: ''}];
+                    : [{ field: cfg.field || '__COUNT__', agg: cfg.agg || 'sum', format: cfg.format || 'number', label: '' }];
                 const metricsHtml = metrics.map(m => {
                     const val = computeScorecardValue(cfg, m);
                     const lbl = m.label || scorecardFieldLabel(m.field);
-                    const aggLbl = (m.field === '__COUNT__') ? '' : ({sum:'Total',avg:'Rata-rata',min:'Min',max:'Max',count:'Count'}[m.agg]||'');
-                    return `<div style="margin-top:${metrics.length>1?'7':'0'}px">
-                      <div style="${labelStyle};padding-right:0">${escapeHtml(lbl)}${aggLbl?` <span style="opacity:.6;font-size:9px">(${escapeHtml(aggLbl)})</span>`:''}</div>
+                    const aggLbl = (m.field === '__COUNT__') ? '' : ({ sum: 'Total', avg: 'Rata-rata', min: 'Min', max: 'Max', count: 'Count' }[m.agg] || '');
+                    return `<div style="margin-top:${metrics.length > 1 ? '7' : '0'}px">
+                      <div style="${labelStyle};padding-right:0">${escapeHtml(lbl)}${aggLbl ? ` <span style="opacity:.6;font-size:9px">(${escapeHtml(aggLbl)})</span>` : ''}</div>
                       <div style="${valueStyle}">${formatScorecardValue(val, m.format)}</div>
                     </div>`;
                 }).join('<hr style="border:0;border-top:1px solid rgba(0,0,0,.07);margin:6px 0">');
@@ -3170,7 +3325,7 @@
         <button data-sc-action="edit" data-sc-id="${escapeAttr(cfg.id)}" title="Edit scorecard">✏️</button>
         <button data-sc-action="delete" data-sc-id="${escapeAttr(cfg.id)}" title="Hapus scorecard">🗑️</button>
       </div>
-      <div class="label" style="${labelStyle};font-weight:700;margin-bottom:4px">${escapeHtml(cfg.icon||"")} ${escapeHtml(cfg.title)}</div>
+      <div class="label" style="${labelStyle};font-weight:700;margin-bottom:4px">${escapeHtml(cfg.icon || "")} ${escapeHtml(cfg.title)}</div>
       ${metricsHtml}
     </div>`;
             }).join("")}</section>`;
@@ -3184,37 +3339,81 @@
             GROUPS.forEach(g => {
                 const fields = FIELD_DEFS.filter(f => f.group === g && f.type === "number");
                 if (!fields.length) return;
-                html += `<optgroup label="${escapeAttr(g)}">${fields.map(f => `<option value="${escapeAttr(f.key)}" ${f.key===selectedKey?'selected':''}>${escapeHtml(f.label)}</option>`).join("")}</optgroup>`;
+                html += `<optgroup label="${escapeAttr(g)}">${fields.map(f => `<option value="${escapeAttr(f.key)}" ${f.key === selectedKey ? 'selected' : ''}>${escapeHtml(f.label)}</option>`).join("")}</optgroup>`;
             });
             return html;
         }
         function buildAggSelectHtml(selectedAgg) {
-            return ['sum','avg','min','max','count'].map(v => {
-                const lbl = {sum:'➕ SUM',avg:'📐 AVG',min:'⬇ MIN',max:'⬆ MAX',count:'🔢 COUNT'}[v];
-                return `<option value="${v}" ${v===selectedAgg?'selected':''}>${lbl}</option>`;
+            return ['sum', 'avg', 'min', 'max', 'count'].map(v => {
+                const lbl = { sum: '➕ SUM', avg: '📐 AVG', min: '⬇ MIN', max: '⬆ MAX', count: '🔢 COUNT' }[v];
+                return `<option value="${v}" ${v === selectedAgg ? 'selected' : ''}>${lbl}</option>`;
             }).join('');
         }
         function buildFormatSelectHtml(selectedFmt) {
-            return [['money','Rp Rupiah'],['number','Angka'],['percent','Persen']].map(([v,l]) =>
-                `<option value="${v}" ${v===selectedFmt?'selected':''}>${l}</option>`
+            return [['money', 'Rp Rupiah'], ['number', 'Angka'], ['percent', 'Persen']].map(([v, l]) =>
+                `<option value="${v}" ${v === selectedFmt ? 'selected' : ''}>${l}</option>`
             ).join('');
         }
+        function buildMetricRowFilterHtml(selectedFilter, midx) {
+            const labelField = FIELD_DEFS.find(f => f.type !== "number");
+            if (!labelField || !filteredData.length) return `<div style="font-size:10px;color:var(--muted)">Tidak ada baris teks untuk filter.</div>`;
+            const allVals = [...new Set(filteredData.map(r => String(r[labelField.key] ?? "")))].sort();
+            const selected = new Set(selectedFilter && selectedFilter.length ? selectedFilter : allVals);
+            const chks = allVals.map(v => {
+                const esc = escapeHtml(v); const escV = v.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const chk = selected.has(v) ? 'checked' : '';
+                return `<label><input type="checkbox" class="sc-m-rowfilter-cb" value="${escV}" ${chk}> ${esc}</label>`;
+            }).join("");
+
+            const total = allVals.length;
+            const checkedCount = selected.size;
+            const hintTxt = (checkedCount === 0 || checkedCount === total) ? "Semua baris dipilih" : `${checkedCount} dari ${total} dipilih`;
+
+            return `
+            <details style="flex-basis:100%;margin-top:4px">
+                <summary style="font-size:10px;cursor:pointer;color:var(--accent);font-weight:600;padding:2px 0">🔍 Filter Baris (<span class="sc-m-rf-hint">${hintTxt}</span>)</summary>
+                <div class="sc-row-filter-actions" style="margin-top:2px;margin-bottom:4px">
+                    <button type="button" onclick="scMetricRowFilterSelectAll(this)">✔ Pilih Semua</button>
+                    <button type="button" onclick="scMetricRowFilterClearAll(this)">✕ Hapus Semua</button>
+                </div>
+                <div class="sc-row-filter-list" onchange="updateScMetricRowFilterHint(this)" style="max-height:120px;margin-top:0">${chks}</div>
+            </details>`;
+        }
+        function scMetricRowFilterSelectAll(btn) {
+            const details = btn.closest('details');
+            details.querySelectorAll('.sc-m-rowfilter-cb').forEach(c => c.checked = true);
+            updateScMetricRowFilterHint(details.querySelector('.sc-row-filter-list'));
+        }
+        function scMetricRowFilterClearAll(btn) {
+            const details = btn.closest('details');
+            details.querySelectorAll('.sc-m-rowfilter-cb').forEach(c => c.checked = false);
+            updateScMetricRowFilterHint(details.querySelector('.sc-row-filter-list'));
+        }
+        function updateScMetricRowFilterHint(listEl) {
+            const cbs = listEl.querySelectorAll('.sc-m-rowfilter-cb');
+            const total = cbs.length;
+            const checked = [...cbs].filter(c => c.checked).length;
+            const hint = listEl.closest('details').querySelector('.sc-m-rf-hint');
+            if (hint) hint.textContent = (checked === 0 || checked === total) ? "Semua baris dipilih" : `${checked} dari ${total} dipilih`;
+        }
+
         function renderMetricRows(metrics) {
             const list = document.getElementById('sc_metricList');
             if (!list) return;
             list.innerHTML = metrics.map((m, idx) => `
                 <div class="sc-metric-row" data-midx="${idx}">
                     <select class="sc-m-field" onchange="onMetricFieldChange(${idx})" style="flex:2">${buildFieldSelectHtml(m.field)}</select>
-                    <select class="sc-m-agg" style="flex:1;display:${m.field==='__COUNT__'?'none':''}" data-midx="${idx}">${buildAggSelectHtml(m.agg)}</select>
+                    <select class="sc-m-agg" style="flex:1;display:${m.field === '__COUNT__' ? 'none' : ''}" data-midx="${idx}">${buildAggSelectHtml(m.agg)}</select>
                     <select class="sc-m-fmt" style="flex:1">${buildFormatSelectHtml(m.format)}</select>
-                    <input type="text" class="sc-m-lbl" value="${escapeAttr(m.label||'')}" placeholder="Label custom (opsional)"
+                    <input type="text" class="sc-m-lbl" value="${escapeAttr(m.label || '')}" placeholder="Label custom (opsional)"
                         style="flex:1.5;min-width:80px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:10.5px;background:#fff">
                     <button type="button" class="sc-m-del" onclick="removeMetricRow(${idx})">✕</button>
+                    ${buildMetricRowFilterHtml(m.rowFilter, idx)}
                 </div>`).join('');
         }
         function addScorecardMetric() {
             const rows = getMetricRowsFromUI();
-            rows.push({field:'__COUNT__', agg:'sum', format:'number', label:''});
+            rows.push({ field: '__COUNT__', agg: 'sum', format: 'number', label: '', rowFilter: [] });
             renderMetricRows(rows);
         }
         function removeMetricRow(idx) {
@@ -3233,11 +3432,21 @@
         function getMetricRowsFromUI() {
             const rows = [];
             document.querySelectorAll('#sc_metricList .sc-metric-row').forEach(row => {
+                const cbs = [...row.querySelectorAll('.sc-m-rowfilter-cb')];
+                const total = cbs.length;
+                const checked = cbs.filter(c => c.checked);
+                let rowFilter = [];
+                // If all or none checked, treat as "all rows" (empty array)
+                if (checked.length > 0 && checked.length < total) {
+                    rowFilter = checked.map(c => c.value);
+                }
+
                 rows.push({
                     field: row.querySelector('.sc-m-field').value,
                     agg: row.querySelector('.sc-m-agg').value || 'sum',
                     format: row.querySelector('.sc-m-fmt').value || 'number',
-                    label: row.querySelector('.sc-m-lbl').value.trim()
+                    label: row.querySelector('.sc-m-lbl').value.trim(),
+                    rowFilter: rowFilter
                 });
             });
             return rows;
@@ -3246,50 +3455,7 @@
             // Legacy compat — no longer used
         }
 
-        // ---- Scorecard Row Filter helpers ----
-        function populateScorecardRowFilter(selectedFilter) {
-            const list = document.getElementById("sc_rowFilterList");
-            if (!list) return;
-            // Use the first text column as the label/identifier
-            const labelField = FIELD_DEFS.find(f => f.type !== "number");
-            if (!labelField || !filteredData.length) {
-                list.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:6px">Tidak ada baris atau tidak ada kolom teks untuk filter.</div>';
-                return;
-            }
-            // Collect unique values from the label field
-            const allVals = [...new Set(filteredData.map(r => String(r[labelField.key] ?? "")))].sort();
-            const selected = new Set(selectedFilter && selectedFilter.length ? selectedFilter : allVals);
-            list.innerHTML = allVals.map(v => {
-                const esc = escapeHtml(v); const escV = v.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                const chk = selected.has(v) ? 'checked' : '';
-                return `<label><input type="checkbox" class="sc-rowfilter-cb" value="${escV}" ${chk}> ${esc}</label>`;
-            }).join("");
-            updateScRowFilterHint();
-        }
-        function updateScRowFilterHint() {
-            const cbs = document.querySelectorAll(".sc-rowfilter-cb");
-            const total = cbs.length;
-            const checked = [...cbs].filter(c => c.checked).length;
-            const hint = document.getElementById("sc_rowfilter_hint");
-            if (hint) hint.textContent = checked === 0 || checked === total ? "Semua baris dipilih (default)" : `${checked} dari ${total} baris dipilih`;
-            if (hint) hint.style.color = (checked === 0 || checked === total) ? "var(--muted)" : "var(--accent)";
-        }
-        function scRowFilterSelectAll() {
-            document.querySelectorAll(".sc-rowfilter-cb").forEach(c => c.checked = true);
-            updateScRowFilterHint();
-        }
-        function scRowFilterClearAll() {
-            document.querySelectorAll(".sc-rowfilter-cb").forEach(c => c.checked = false);
-            updateScRowFilterHint();
-        }
-        function getScRowFilterValue() {
-            const cbs = [...document.querySelectorAll(".sc-rowfilter-cb")];
-            const total = cbs.length;
-            const checked = cbs.filter(c => c.checked);
-            // If all or none checked, treat as "all rows" (no filter = [])
-            if (checked.length === 0 || checked.length === total) return [];
-            return checked.map(c => c.value);
-        }
+        // ---- Legacy row filter helpers removed since filter is now per-metric ----
         function fillScorecardStyleFields(style) {
             const st = Object.assign({}, SCORECARD_STYLE_DEFAULT, style || {});
             setColorValue("sc_bgColor", "sc_bgColor_hex", st.bgColor);
@@ -3301,17 +3467,15 @@
         function resetScorecardStyle() { fillScorecardStyleFields(SCORECARD_STYLE_DEFAULT); }
         function openScorecardModal(scId) {
             const existing = scId ? scorecards.find(c => c.id === scId) : null;
-            const cfg = existing || { id: "sc" + Date.now(), icon: "🔖", title: "", metrics: [{field:'__COUNT__',agg:'count',format:'number',label:''}], style: {}, rowFilter: [] };
+            const cfg = existing || { id: "sc" + Date.now(), icon: "🔖", title: "", metrics: [{ field: '__COUNT__', agg: 'count', format: 'number', label: '' }], style: {}, rowFilter: [] };
             // Legacy single-field upgrade
-            if (!cfg.metrics) cfg.metrics = [{field: cfg.field||'__COUNT__', agg: cfg.agg||'sum', format: cfg.format||'number', label:''}];
+            if (!cfg.metrics) cfg.metrics = [{ field: cfg.field || '__COUNT__', agg: cfg.agg || 'sum', format: cfg.format || 'number', label: '' }];
             document.getElementById("scorecardModalTitle").textContent = existing ? "🧾 Edit Scorecard" : "🧾 Tambah Scorecard";
             document.getElementById("sc_id").value = existing ? existing.id : "";
             document.getElementById("sc_icon").value = cfg.icon || "";
             document.getElementById("sc_title").value = cfg.title || "";
             renderMetricRows(cfg.metrics);
             fillScorecardStyleFields(cfg.style);
-            populateScorecardRowFilter(cfg.rowFilter || []);
-            document.getElementById("sc_rowFilterList").addEventListener("change", updateScRowFilterHint);
             document.getElementById("scorecardModal").dataset.newId = existing ? "" : cfg.id;
             document.getElementById("scorecardModal").classList.remove("hidden");
         }
@@ -3342,8 +3506,8 @@
                 field: metrics[0].field,
                 agg: metrics[0].agg,
                 format: metrics[0].format,
-                style,
-                rowFilter: getScRowFilterValue()
+                style
+                // cfg.rowFilter is deprecated; each metric has its own rowFilter now
             };
             const idx = scorecards.findIndex(c => c.id === id);
             if (idx >= 0) { scorecards[idx] = cfg; } else { scorecards.push(cfg); }
