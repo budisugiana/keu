@@ -44,6 +44,14 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-ser
 .hero{background:linear-gradient(90deg,#0b3c55,#0F5A7D);border-radius:16px;padding:22px;color:#fff;box-shadow:0 8px 25px rgba(0,0,0,.12)}.hero h1{margin:0;font-size:23px}.hero p{font-size:12px;opacity:.8;margin:5px 0 18px}.filter-title{font-size:11px;font-weight:800;color:#FF8A3D;text-transform:uppercase;margin-bottom:7px}
 .filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.filters select,.filters input{padding:7px 9px;border-radius:6px;border:1px solid var(--border);font-size:11px;background:#f0faf8;color:var(--text);min-width:140px}.filters input{min-width:250px;flex:1}
 .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.btn{cursor:pointer;border:0;border-radius:7px;padding:7px 12px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px}.btn:hover{opacity:.86}.primary{background:var(--accent);color:#fff}.gray{background:#94a3b8;color:#fff}.cyan{background:#67e8f9;color:#004d4d}.purple{background:#7c3aed;color:#fff}.red{background:#ef4444;color:#fff}.orange{background:#ea580c;color:#fff}.teal{background:#0d9488;color:#fff}
+.edit-toggle-btn{cursor:pointer;border:0;border-radius:7px;padding:7px 14px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:#0b3c55;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18);transition:background .15s}.edit-toggle-btn:hover{background:#17688a}.edit-toggle-btn.active{background:#007474}
+.sc-row-filter-list{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;padding:4px 2px;border:1px solid var(--border);border-radius:7px;background:#fff;margin-top:6px}
+.sc-row-filter-list label{display:flex;align-items:center;gap:7px;padding:3px 8px;font-size:11px;color:var(--text);cursor:pointer;border-radius:5px;transition:background .1s}
+.sc-row-filter-list label:hover{background:#e6f4f1}
+.sc-row-filter-list input[type=checkbox]{accent-color:var(--accent);width:12px;height:12px;flex:0 0 12px}
+.sc-row-filter-actions{display:flex;gap:6px;margin-top:5px}
+.sc-row-filter-actions button{flex:1;font-size:10px;padding:3px 0;background:#fff;border:1px solid var(--border);border-radius:5px;color:var(--accent);cursor:pointer;font-weight:600}
+.sc-row-filter-actions button:hover{background:#e6f4f1}
 #alert{margin-top:8px;font-size:11px;white-space:pre-wrap}
 .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:12px 0}.card{background:#fff;border:1px solid var(--border);border-radius:11px;padding:13px 15px;box-shadow:0 2px 8px rgba(0,116,116,.08);position:relative}.label{font-size:11px;color:var(--muted);padding-right:44px}.value{font-size:21px;font-weight:700;color:var(--dark);margin-top:2px}
 .card-actions{position:absolute;top:8px;right:8px;display:flex;gap:4px}
@@ -152,10 +160,6 @@ th[data-col].col-drag-over{outline:2px dashed #FF8A3D;outline-offset:-2px}
 [id^="dataTable_"] th.no-col,[id^="dataTable_"] td.no-col{width:45px!important;min-width:45px!important;max-width:45px!important;text-align:center;white-space:nowrap!important}
 [id^="dataTable_"] th.action-col,[id^="dataTable_"] td.action-col{width:105px!important;min-width:105px!important;max-width:105px!important;text-align:center;white-space:nowrap!important}
 table thead th, table th{white-space:normal!important;overflow-wrap:anywhere;word-break:break-word;text-wrap:wrap}
-
-/* ==== Toggle global: sembunyikan seluruh tombol Edit (✏️) & Hapus (🗑️) baris di semua paket tabel ==== */
-body.hide-row-actions .icon-btn.edit,
-body.hide-row-actions .icon-btn.delete{display:none!important}
 </style>
 </head>
 <body>
@@ -207,9 +211,12 @@ body.hide-row-actions .icon-btn.delete{display:none!important}
         <button class="btn cyan" onclick="exportExcel()">📤 Export Excel (semua kolom)</button>
         <button class="btn orange" onclick="downloadTemplate()">📄 Template</button>
         <button class="btn red" onclick="deleteAllData()">🗑️ Hapus Semua Data</button>
-        <button class="btn gray" id="toggleRowActionsBtn" onclick="toggleRowActionsVisibility()">🙈 Sembunyikan Tombol Edit/Hapus</button>
       </div>
       <div id="alert"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:12px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px">
+        <span style="font-size:11px;opacity:.8;font-weight:600">🛠️ Panel Edit:</span>
+        <button id="globalEditToggleBtn" class="edit-toggle-btn active" onclick="toggleAllEditPanels()" title="Tampilkan/Sembunyikan semua tombol edit di seluruh halaman">👁️ Sembunyikan Menu Edit</button>
+      </div>
     </section>
 
     <div class="section-title" style="margin-top:0">
@@ -399,6 +406,16 @@ body.hide-row-actions .icon-btn.delete{display:none!important}
       </div>
     </div>
 
+    <div class="form-section" id="sc_rowfilter_section">
+      <div class="form-section-title">Filter Baris yang Dihitung <span style="font-weight:400;font-size:10px;color:var(--muted);text-transform:none">(centang baris yang ikut dihitung, kosongkan = semua)</span></div>
+      <div class="sc-row-filter-actions">
+        <button type="button" onclick="scRowFilterSelectAll()">✔ Pilih Semua</button>
+        <button type="button" onclick="scRowFilterClearAll()">✕ Hapus Semua</button>
+      </div>
+      <div class="sc-row-filter-list" id="sc_rowFilterList"></div>
+      <div style="margin-top:6px;font-size:10px;color:var(--muted)" id="sc_rowfilter_hint">Semua baris dipilih (default)</div>
+    </div>
+
     <div class="form-section" id="sc_agg_section">
       <div class="form-section-title">Cara Menghitung (Agregasi)</div>
       <div class="fmt-row">
@@ -420,6 +437,56 @@ body.hide-row-actions .icon-btn.delete{display:none!important}
           <option value="number">Angka biasa</option>
           <option value="percent">Persen (%)</option>
         </select>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Warna Scorecard</div>
+      <div class="fmt-row">
+        <span>Warna latar (background) kartu</span>
+        <div class="hex-color-control">
+          <input type="color" id="sc_bgColor" class="color-input" oninput="syncColorHex('sc_bgColor','sc_bgColor_hex')">
+          <input type="text" id="sc_bgColor_hex" class="hex-input" maxlength="7" placeholder="#RRGGBB" oninput="syncHexColor('sc_bgColor_hex','sc_bgColor')">
+        </div>
+      </div>
+      <div class="color-recommendations" id="sc_bgColor_recs"></div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Warna Teks</div>
+      <div class="fmt-row">
+        <span>Warna judul &amp; nilai scorecard</span>
+        <div class="hex-color-control">
+          <input type="color" id="sc_textColor" class="color-input" oninput="syncColorHex('sc_textColor','sc_textColor_hex')">
+          <input type="text" id="sc_textColor_hex" class="hex-input" maxlength="7" placeholder="#RRGGBB" oninput="syncHexColor('sc_textColor_hex','sc_textColor')">
+        </div>
+      </div>
+      <div class="color-recommendations" id="sc_textColor_recs"></div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Ukuran Teks &amp; Scorecard</div>
+      <div class="fmt-row" style="margin-bottom:8px">
+        <span>Ukuran teks nilai (angka)</span>
+        <input type="number" id="sc_valueSize" min="10" max="48" step="1" style="margin-left:auto;width:70px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px">
+        <span class="fmt-unit">px</span>
+      </div>
+      <div class="fmt-row" style="margin-bottom:8px">
+        <span>Ukuran teks judul (label)</span>
+        <input type="number" id="sc_labelSize" min="8" max="24" step="1" style="margin-left:auto;width:70px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px">
+        <span class="fmt-unit">px</span>
+      </div>
+      <div class="fmt-row">
+        <span>Ukuran kartu scorecard</span>
+        <select id="sc_cardSize" style="margin-left:auto;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px">
+          <option value="sm">Kecil</option>
+          <option value="md">Sedang (Default)</option>
+          <option value="lg">Besar</option>
+          <option value="xl">Sangat Besar</option>
+        </select>
+      </div>
+      <div style="margin-top:10px">
+        <button class="miniBtn" type="button" onclick="resetScorecardStyle()">↺ Reset Tampilan ke Default</button>
       </div>
     </div>
 
@@ -570,9 +637,21 @@ body.hide-row-actions .icon-btn.delete{display:none!important}
 
     <div class="form-section">
       <div class="form-section-title">Kolom Label (Sumbu X / Kategori)</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px">Bisa dipilih dari kolom teks (mis. Anggaran UNIT) maupun kolom angka (mis. BLN 1, TOTAL BLN, dll.) sesuai kategori yang ingin ditampilkan di sumbu X.</div>
       <div class="fmt-row">
-        <select id="chart_labelField" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%"></select>
+        <select id="chart_labelField" onchange="onChartLabelFieldChange()" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;width:100%"></select>
       </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Isi Kategori yang Ditampilkan</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Centang isi/nilai dari kolom label di atas yang ingin ditampilkan pada grafik. Semua tercentang = tampilkan semua isi (otomatis mengikuti data baru yang masuk kemudian).</div>
+      <div class="colpanel-toolbar">
+        <button class="miniBtn" type="button" onclick="toggleAllChartLabelValues(true)">Pilih Semua</button>
+        <button class="miniBtn" type="button" onclick="toggleAllChartLabelValues(false)">Kosongkan</button>
+        <span class="colpanel-count" id="chartLabelValuesCount"></span>
+      </div>
+      <div class="colpick-list" id="chartLabelValues" style="max-height:220px;overflow:auto"></div>
     </div>
 
     <div class="form-section">
@@ -818,6 +897,10 @@ function renderChartInstance(cfg){
   if(chartInstances[cfg.id]){chartInstances[cfg.id].destroy();delete chartInstances[cfg.id];}
 
   let source=filteredData.slice();
+  if(cfg.labelValues && cfg.labelValues.length){
+    const allowed = new Set(cfg.labelValues.map(String));
+    source = source.filter(r=>allowed.has(String(r[cfg.labelField]??"")));
+  }
   const primaryField=(cfg.valueFields||[])[0];
   if(cfg.sortDesc && primaryField) source.sort((a,b)=>(Number(b[primaryField])||0)-(Number(a[primaryField])||0));
   if(cfg.topN && cfg.topN>0) source=source.slice(0,cfg.topN);
@@ -951,6 +1034,52 @@ function renderChartValueFieldGroups(selected){
     </div>`;
   }).join("");
 }
+function populateChartLabelFieldSelect(selectedField){
+  const sel = document.getElementById("chart_labelField");
+  let html = "";
+  GROUPS.forEach(g=>{
+    const fields = FIELD_DEFS.filter(f=>f.group===g);
+    if(!fields.length) return;
+    html += `<optgroup label="${escapeAttr(g)}">${fields.map(f=>`<option value="${escapeAttr(f.key)}">${escapeHtml(f.label)}${f.type==="number"?" (angka)":""}</option>`).join("")}</optgroup>`;
+  });
+  sel.innerHTML = html;
+  sel.value = selectedField || FIELD_DEFS[0]?.key || "";
+}
+function getUniqueChartLabelValues(field){
+  const set = new Set();
+  filteredData.forEach(r=>{ set.add(String(r[field]??"")); });
+  return Array.from(set).sort((a,b)=>a.localeCompare(b,"id",{numeric:true}));
+}
+function renderChartLabelValueCheckboxes(field, selectedValues){
+  const wrap = document.getElementById("chartLabelValues");
+  const values = getUniqueChartLabelValues(field);
+  // Jika belum pernah diatur (undefined) atau kosong = anggap semua tercentang.
+  const allSelected = !selectedValues || !selectedValues.length;
+  const selectedSet = new Set((selectedValues||[]).map(String));
+  if(!values.length){
+    wrap.innerHTML = `<div style="font-size:10.5px;color:var(--muted)">Tidak ada data untuk kolom ini.</div>`;
+  }else{
+    wrap.innerHTML = values.map(v=>`<label>
+      <input type="checkbox" data-chartlabelvalue="${escapeAttr(v)}" ${allSelected || selectedSet.has(v) ? "checked" : ""}>
+      ${escapeHtml(v===""?"(kosong)":v)}
+    </label>`).join("");
+  }
+  updateChartLabelValuesCount();
+}
+function updateChartLabelValuesCount(){
+  const all = document.querySelectorAll("#chartLabelValues input[data-chartlabelvalue]");
+  const checked = document.querySelectorAll("#chartLabelValues input[data-chartlabelvalue]:checked");
+  const el = document.getElementById("chartLabelValuesCount");
+  if(el) el.textContent = all.length ? `${checked.length} / ${all.length} isi dipilih` : "";
+}
+function onChartLabelFieldChange(){
+  const field = document.getElementById("chart_labelField").value;
+  renderChartLabelValueCheckboxes(field, null);
+}
+function toggleAllChartLabelValues(state){
+  document.querySelectorAll("#chartLabelValues input[data-chartlabelvalue]").forEach(el=>{ el.checked = state; });
+  updateChartLabelValuesCount();
+}
 function openChartModal(chartId){
   const existing = chartId ? charts.find(c=>c.id===chartId) : null;
   const cfg = existing || {
@@ -960,6 +1089,7 @@ function openChartModal(chartId){
     row: 1,
     labelField: (FIELD_DEFS.find(f=>f.type==="text") || FIELD_DEFS[0]).key,
     valueFields: ["Target IDR"],
+    labelValues: [],
     sortDesc: true,
     topN: 0
   };
@@ -969,10 +1099,8 @@ function openChartModal(chartId){
   document.getElementById("chart_type").value = cfg.type || "bar";
   document.getElementById("chart_row").value = String(cfg.row || 1);
 
-  const labelSelect = document.getElementById("chart_labelField");
-  const textFields = FIELD_DEFS.filter(f=>f.type==="text");
-  labelSelect.innerHTML = textFields.map(f=>`<option value="${escapeAttr(f.key)}">${escapeHtml(f.label)}</option>`).join("");
-  labelSelect.value = cfg.labelField || textFields[0]?.key || "";
+  populateChartLabelFieldSelect(cfg.labelField);
+  renderChartLabelValueCheckboxes(document.getElementById("chart_labelField").value, cfg.labelValues || []);
 
   renderChartValueFieldGroups(cfg.valueFields || []);
   document.getElementById("chart_sort").checked = cfg.sortDesc !== false;
@@ -991,6 +1119,12 @@ function saveChartModal(){
     .map(el=>el.dataset.chartvaluekey);
   if(!valueFields.length){ showAlert("Pilih minimal 1 kolom nilai (sumbu Y) untuk grafik.","error"); return; }
 
+  const allLabelCheckboxes = Array.from(document.querySelectorAll("#chartLabelValues input[data-chartlabelvalue]"));
+  const checkedLabelValues = allLabelCheckboxes.filter(el=>el.checked).map(el=>el.dataset.chartlabelvalue);
+  if(allLabelCheckboxes.length && !checkedLabelValues.length){ showAlert("Pilih minimal 1 isi kategori untuk ditampilkan pada grafik.","error"); return; }
+  // Jika semua isi tercentang, simpan array kosong = tidak difilter (otomatis ikut data baru).
+  const labelValues = (checkedLabelValues.length === allLabelCheckboxes.length) ? [] : checkedLabelValues;
+
   const cfg = {
     id,
     title: document.getElementById("chart_title").value.trim() || "Grafik Tanpa Judul",
@@ -998,6 +1132,7 @@ function saveChartModal(){
     row: Number(document.getElementById("chart_row").value) || 1,
     labelField: document.getElementById("chart_labelField").value,
     valueFields,
+    labelValues,
     sortDesc: document.getElementById("chart_sort").checked,
     topN: Number(document.getElementById("chart_topn").value) || 0
   };
@@ -1024,6 +1159,9 @@ function initChartsDelegation(){
     const id = btn.dataset.chartId;
     if(action==="edit") openChartModal(id);
     else if(action==="delete") deleteChart(id);
+  });
+  document.getElementById("chartLabelValues").addEventListener("change",(e)=>{
+    if(e.target && e.target.matches("input[data-chartlabelvalue]")) updateChartLabelValuesCount();
   });
 }
 
@@ -1513,39 +1651,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   initChartsDelegation();
   initScorecardsDelegation();
   initColumnOrderModalDelegation();
-  initRowActionsToggle();
 });
-
-// ============================================================
-// TOGGLE GLOBAL: SEMBUNYIKAN/TAMPILKAN SEMUA TOMBOL EDIT & HAPUS
-// (berlaku untuk baris tabel di seluruh paket, dan berlaku juga
-// untuk tombol edit/hapus pada kartu Grafik). State tersimpan di
-// localStorage supaya tetap konsisten walau halaman dimuat ulang.
-// ============================================================
-const ROW_ACTIONS_HIDDEN_KEY = "icms_multi_row_actions_hidden";
-function isRowActionsHidden(){
-  return localStorage.getItem(ROW_ACTIONS_HIDDEN_KEY) === "1";
-}
-function updateRowActionsToggleBtn(){
-  const btn = document.getElementById("toggleRowActionsBtn");
-  if(!btn) return;
-  if(isRowActionsHidden()){
-    btn.textContent = "👁️ Tampilkan Tombol Edit/Hapus";
-  }else{
-    btn.textContent = "🙈 Sembunyikan Tombol Edit/Hapus";
-  }
-}
-function toggleRowActionsVisibility(){
-  const hidden = !isRowActionsHidden();
-  localStorage.setItem(ROW_ACTIONS_HIDDEN_KEY, hidden ? "1" : "0");
-  document.body.classList.toggle("hide-row-actions", hidden);
-  updateRowActionsToggleBtn();
-  showAlert(hidden ? "Tombol Edit & Hapus disembunyikan di semua tabel." : "Tombol Edit & Hapus ditampilkan kembali di semua tabel.", "success");
-}
-function initRowActionsToggle(){
-  document.body.classList.toggle("hide-row-actions", isRowActionsHidden());
-  updateRowActionsToggleBtn();
-}
 
 // Satu listener terpasang SEKALI di #packetsContainer (bukan per-tbody), supaya
 // tetap berfungsi walau isi container dirender ulang setiap kali urutan paket
@@ -1927,8 +2033,18 @@ function loadScorecards(){
 function saveScorecards(){ localStorage.setItem(SCORECARDS_KEY, JSON.stringify(scorecards)); }
 
 function computeScorecardValue(cfg){
-  if(cfg.field==="__COUNT__") return filteredData.length;
-  const values = filteredData.map(r=>Number(r[cfg.field])||0);
+  // rowFilter: array of string values from the label/identifier column to include.
+  // If empty/absent, all rows count.
+  let rows = filteredData;
+  if(cfg.rowFilter && cfg.rowFilter.length > 0){
+    const labelKey = FIELD_DEFS.length ? FIELD_DEFS[0].key : null;
+    if(labelKey){
+      const set = new Set(cfg.rowFilter);
+      rows = filteredData.filter(r => set.has(String(r[labelKey]??"")));
+    }
+  }
+  if(cfg.field==="__COUNT__") return rows.length;
+  const values = rows.map(r=>Number(r[cfg.field])||0);
   if(!values.length) return 0;
   switch(cfg.agg){
     case "avg": return values.reduce((a,b)=>a+b,0)/values.length;
@@ -1953,6 +2069,15 @@ function scorecardAggLabel(cfg){
   return {sum:"Total",avg:"Rata-rata",min:"Minimum",max:"Maximum",count:"Jumlah Baris"}[cfg.agg] || "";
 }
 
+const SCORECARD_STYLE_DEFAULT = { bgColor:"#FFFFFF", textColor:"#0B3C55", valueSize:21, labelSize:11, cardSize:"md" };
+const SCORECARD_CARD_SIZE_MAP = {
+  sm:{minWidth:"130px",padding:"10px 12px"},
+  md:{minWidth:"160px",padding:"13px 15px"},
+  lg:{minWidth:"200px",padding:"16px 18px"},
+  xl:{minWidth:"240px",padding:"20px 22px"}
+};
+function getScorecardStyle(cfg){ return Object.assign({}, SCORECARD_STYLE_DEFAULT, cfg.style||{}); }
+
 function renderScorecards(){
   const container = document.getElementById("scorecardsContainer");
   if(!scorecards.length){
@@ -1962,13 +2087,18 @@ function renderScorecards(){
   container.innerHTML = `<section class="summary">${scorecards.map(cfg=>{
     const value = computeScorecardValue(cfg);
     const aggLabel = scorecardAggLabel(cfg);
-    return `<div class="card">
+    const st = getScorecardStyle(cfg);
+    const sizeCfg = SCORECARD_CARD_SIZE_MAP[st.cardSize] || SCORECARD_CARD_SIZE_MAP.md;
+    const cardStyle = `background:${escapeAttr(st.bgColor)};min-width:${sizeCfg.minWidth};padding:${sizeCfg.padding}`;
+    const labelStyle = `color:${escapeAttr(st.textColor)};font-size:${Number(st.labelSize)||11}px`;
+    const valueStyle = `color:${escapeAttr(st.textColor)};font-size:${Number(st.valueSize)||21}px`;
+    return `<div class="card" style="${cardStyle}">
       <div class="card-actions">
         <button data-sc-action="edit" data-sc-id="${escapeAttr(cfg.id)}" title="Edit scorecard">✏️</button>
         <button data-sc-action="delete" data-sc-id="${escapeAttr(cfg.id)}" title="Hapus scorecard">🗑️</button>
       </div>
-      <div class="label">${escapeHtml(cfg.icon||"")} ${escapeHtml(cfg.title)}${aggLabel?` <span style="opacity:.7">(${escapeHtml(aggLabel)})</span>`:""}</div>
-      <div class="value">${formatScorecardValue(value, cfg.format)}</div>
+      <div class="label" style="${labelStyle}">${escapeHtml(cfg.icon||"")} ${escapeHtml(cfg.title)}${aggLabel?` <span style="opacity:.7">(${escapeHtml(aggLabel)})</span>`:""}</div>
+      <div class="value" style="${valueStyle}">${formatScorecardValue(value, cfg.format)}</div>
     </div>`;
   }).join("")}</section>`;
 }
@@ -1988,9 +2118,63 @@ function populateScorecardFieldSelect(selectedField){
   sel.innerHTML = html;
   sel.value = selectedField || "__COUNT__";
 }
+
+// ---- Scorecard Row Filter helpers ----
+function populateScorecardRowFilter(selectedFilter){
+  const list = document.getElementById("sc_rowFilterList");
+  if(!list) return;
+  // Use the first text column as the label/identifier
+  const labelField = FIELD_DEFS.find(f=>f.type!=="number");
+  if(!labelField || !filteredData.length){
+    list.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:6px">Tidak ada baris atau tidak ada kolom teks untuk filter.</div>';
+    return;
+  }
+  // Collect unique values from the label field
+  const allVals = [...new Set(filteredData.map(r=>String(r[labelField.key]??"")))].sort();
+  const selected = new Set(selectedFilter && selectedFilter.length ? selectedFilter : allVals);
+  list.innerHTML = allVals.map(v=>{
+    const esc = escapeHtml(v); const escV = v.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const chk = selected.has(v) ? 'checked' : '';
+    return `<label><input type="checkbox" class="sc-rowfilter-cb" value="${escV}" ${chk}> ${esc}</label>`;
+  }).join("");
+  updateScRowFilterHint();
+}
+function updateScRowFilterHint(){
+  const cbs = document.querySelectorAll(".sc-rowfilter-cb");
+  const total = cbs.length;
+  const checked = [...cbs].filter(c=>c.checked).length;
+  const hint = document.getElementById("sc_rowfilter_hint");
+  if(hint) hint.textContent = checked===0 || checked===total ? "Semua baris dipilih (default)" : `${checked} dari ${total} baris dipilih`;
+  if(hint) hint.style.color = (checked===0||checked===total) ? "var(--muted)" : "var(--accent)";
+}
+function scRowFilterSelectAll(){
+  document.querySelectorAll(".sc-rowfilter-cb").forEach(c=>c.checked=true);
+  updateScRowFilterHint();
+}
+function scRowFilterClearAll(){
+  document.querySelectorAll(".sc-rowfilter-cb").forEach(c=>c.checked=false);
+  updateScRowFilterHint();
+}
+function getScRowFilterValue(){
+  const cbs = [...document.querySelectorAll(".sc-rowfilter-cb")];
+  const total = cbs.length;
+  const checked = cbs.filter(c=>c.checked);
+  // If all or none checked, treat as "all rows" (no filter = [])
+  if(checked.length===0 || checked.length===total) return [];
+  return checked.map(c=>c.value);
+}
+function fillScorecardStyleFields(style){
+  const st = Object.assign({}, SCORECARD_STYLE_DEFAULT, style||{});
+  setColorValue("sc_bgColor","sc_bgColor_hex", st.bgColor);
+  setColorValue("sc_textColor","sc_textColor_hex", st.textColor);
+  document.getElementById("sc_valueSize").value = st.valueSize;
+  document.getElementById("sc_labelSize").value = st.labelSize;
+  document.getElementById("sc_cardSize").value = st.cardSize;
+}
+function resetScorecardStyle(){ fillScorecardStyleFields(SCORECARD_STYLE_DEFAULT); }
 function openScorecardModal(scId){
   const existing = scId ? scorecards.find(c=>c.id===scId) : null;
-  const cfg = existing || { id:"sc"+Date.now(), icon:"🔖", title:"", field:"__COUNT__", agg:"sum", format:"money" };
+  const cfg = existing || { id:"sc"+Date.now(), icon:"🔖", title:"", field:"__COUNT__", agg:"sum", format:"money", style:{}, rowFilter:[] };
   document.getElementById("scorecardModalTitle").textContent = existing ? "🧾 Edit Scorecard" : "🧾 Tambah Scorecard";
   document.getElementById("sc_id").value = existing ? existing.id : "";
   document.getElementById("sc_icon").value = cfg.icon || "";
@@ -1998,7 +2182,11 @@ function openScorecardModal(scId){
   populateScorecardFieldSelect(cfg.field);
   document.getElementById("sc_agg").value = cfg.agg || "sum";
   document.getElementById("sc_format").value = cfg.format || "money";
+  fillScorecardStyleFields(cfg.style);
   onScorecardFieldChange();
+  populateScorecardRowFilter(cfg.rowFilter || []);
+  // Update hint on checkbox change
+  document.getElementById("sc_rowFilterList").addEventListener("change", updateScRowFilterHint);
   document.getElementById("scorecardModal").dataset.newId = existing ? "" : cfg.id;
   document.getElementById("scorecardModal").classList.remove("hidden");
 }
@@ -2010,13 +2198,23 @@ function saveScorecardModal(){
   const field = document.getElementById("sc_field").value;
   const title = document.getElementById("sc_title").value.trim() || scorecardFieldLabel(field);
 
+  const style = {
+    bgColor: normalizeHex(document.getElementById("sc_bgColor").value, SCORECARD_STYLE_DEFAULT.bgColor),
+    textColor: normalizeHex(document.getElementById("sc_textColor").value, SCORECARD_STYLE_DEFAULT.textColor),
+    valueSize: Number(document.getElementById("sc_valueSize").value) || SCORECARD_STYLE_DEFAULT.valueSize,
+    labelSize: Number(document.getElementById("sc_labelSize").value) || SCORECARD_STYLE_DEFAULT.labelSize,
+    cardSize: document.getElementById("sc_cardSize").value || SCORECARD_STYLE_DEFAULT.cardSize
+  };
+
   const cfg = {
     id,
     icon: document.getElementById("sc_icon").value.trim(),
     title,
     field,
     agg: document.getElementById("sc_agg").value,
-    format: document.getElementById("sc_format").value
+    format: document.getElementById("sc_format").value,
+    style,
+    rowFilter: getScRowFilterValue()
   };
   const idx = scorecards.findIndex(c=>c.id===id);
   if(idx>=0){ scorecards[idx] = cfg; } else { scorecards.push(cfg); }
@@ -2040,6 +2238,38 @@ function initScorecardsDelegation(){
     if(action==="edit") openScorecardModal(id);
     else if(action==="delete") deleteScorecard(id);
   });
+}
+
+// ============================================================
+// GLOBAL EDIT TOGGLE — menyembunyikan/memunculkan semua tombol
+// edit (card-actions, packet-actions, reorder-btns, .icon-btn)
+// di seluruh halaman dengan satu klik.
+// ============================================================
+let _editPanelsVisible = true;
+function toggleAllEditPanels(){
+  _editPanelsVisible = !_editPanelsVisible;
+  const btn = document.getElementById("globalEditToggleBtn");
+  // Selector untuk semua area edit: kartu scorecard, grafik, paket tabel, tombol icon-btn
+  const editSelectors = [
+    ".card-actions",
+    ".packet-actions",
+    ".reorder-btns",
+    ".chart-card-actions",
+    "button.icon-btn",
+    "button.edit",
+    "button.delete",
+    "button.format",
+    "[data-sc-action]"
+  ];
+  editSelectors.forEach(sel=>{
+    document.querySelectorAll(sel).forEach(el=>{
+      el.style.display = _editPanelsVisible ? "" : "none";
+    });
+  });
+  if(btn){
+    btn.textContent = _editPanelsVisible ? "👁️ Sembunyikan Menu Edit" : "✏️ Tampilkan Menu Edit";
+    btn.classList.toggle("active", _editPanelsVisible);
+  }
 }
 
 // ============================================================
