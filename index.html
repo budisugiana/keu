@@ -2064,10 +2064,39 @@
             return m[t] || t;
         }
 
+        function getLegendConfig(display = true, fontSize = 10) {
+            return {
+                display,
+                labels: {
+                    font: { size: fontSize },
+                    generateLabels: function(chart) {
+                        let original = [];
+                        try {
+                            original = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                        } catch(e) { return []; }
+                        original.forEach(label => {
+                            if (['pie', 'doughnut', 'polarArea'].includes(chart.config.type)) {
+                                const val = chart.data.datasets[0].data[label.index];
+                                if (val !== undefined) label.text = `${label.text} (${Number(val).toLocaleString('id-ID')})`;
+                            } else {
+                                const ds = chart.data.datasets[label.datasetIndex];
+                                if (ds && ds.data) {
+                                    // Hitung total nilai jika legend mewakili satu dataset
+                                    const sum = ds.data.reduce((a, b) => a + (Number(b) || 0), 0);
+                                    label.text = `${label.text} (${sum.toLocaleString('id-ID')})`;
+                                }
+                            }
+                        });
+                        return original;
+                    }
+                }
+            };
+        }
+
         function chartBaseOptions() {
             return {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: true, labels: { font: { size: 10 } } }, title: { display: false } },
+                plugins: { legend: getLegendConfig(true), title: { display: false } },
                 scales: { x: { ticks: { font: { size: 9 } } }, y: { ticks: { font: { size: 9 } }, beginAtZero: true } }
             };
         }
@@ -2119,13 +2148,13 @@
             }
             else if (t === "pie" || t === "doughnut") {
                 type = t; const first = fields[0]; data = { labels, datasets: [{ label: first, data: vals(first), backgroundColor: source.map((_, i) => colors[i % colors.length]), borderColor: "#fff", borderWidth: 2 }] };
-                options = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { font: { size: 10 } } } } };
+                options = { responsive: true, maintainAspectRatio: false, plugins: { legend: getLegendConfig(true, 10) } };
             }
             else if (t === "treemap") {
                 type = "treemap";
                 const first = fields[0];
                 data = { datasets: [{ tree: source.map(r => Number(r[first]) || 0), key: "value", groups: [cfg.labelField], backgroundColor: (ctx) => colors[ctx.dataIndex % colors.length], labels: { display: true, formatter: ctx => ctx.raw?.g?.[0] ?? ctx.raw?.v ?? "" } }] };
-                options = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+                options = { responsive: true, maintainAspectRatio: false, plugins: { legend: getLegendConfig(false) } };
             }
             else if (t === "sunburst") {
                 type = "doughnut";
@@ -2134,7 +2163,7 @@
                     labels, datasets: [{ label: first, data: vals(first), backgroundColor: source.map((_, i) => colors[i % colors.length]), borderColor: "#fff", borderWidth: 2, weight: 1 },
                     { label: "Komposisi", data: vals(first).map(v => Math.sqrt(Math.abs(v))), backgroundColor: source.map((_, i) => colors[(i + 3) % colors.length] + "99"), borderColor: "#fff", borderWidth: 1, weight: .55 }]
                 };
-                options = { responsive: true, maintainAspectRatio: false, cutout: "28%", plugins: { legend: { display: true, labels: { font: { size: 10 } } } } };
+                options = { responsive: true, maintainAspectRatio: false, cutout: "28%", plugins: { legend: getLegendConfig(true, 10) } };
             }
             else if (t === "gauge" || t === "progress") {
                 const v = Number(source[0]?.[fields[0]]) || 0, target = Math.max(Number(source[1]?.[fields[0]]) || 100, 1), pct = Math.max(0, Math.min(100, v / target * 100));
@@ -2153,7 +2182,7 @@
             }
             else if (t === "radialBar") {
                 type = "doughnut"; data = { labels, datasets: [{ data: vals(fields[0]), backgroundColor: source.map((_, i) => colors[i % colors.length]), borderColor: "#fff", borderWidth: 2 }] };
-                options = { responsive: true, maintainAspectRatio: false, cutout: "45%", plugins: { legend: { display: true, labels: { font: { size: 9 } } } } };
+                options = { responsive: true, maintainAspectRatio: false, cutout: "45%", plugins: { legend: getLegendConfig(true, 9) } };
             }
             else if (t === "scatter") {
                 type = "scatter"; const xField = fields[0], yField = fields[1] || fields[0];
