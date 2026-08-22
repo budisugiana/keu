@@ -1330,10 +1330,12 @@
             </nav>
             <div class="sidebar-bottom">
                 <div class="small" id="whoami" style="margin-bottom:8px">Memuat...</div>
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;border-top:1px solid rgba(255,255,255,.15);padding-top:8px">
+                <div
+                    style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;border-top:1px solid rgba(255,255,255,.15);padding-top:8px">
                     <span style="font-size:11px;font-weight:600;opacity:0.8">🛠️ Panel Edit</span>
                     <button id="globalEditToggleBtn" class="edit-toggle-btn active" onclick="toggleAllEditPanels()"
-                        style="padding:5px 8px;font-size:10px;border-radius:5px" title="Tampilkan/Sembunyikan semua tombol edit">👁️ Sembunyikan</button>
+                        style="padding:5px 8px;font-size:10px;border-radius:5px"
+                        title="Tampilkan/Sembunyikan semua tombol edit">👁️ Sembunyikan</button>
                 </div>
                 <button class="btn gray" style="width:100%" onclick="logout()">🚪 Logout</button>
             </div>
@@ -1342,8 +1344,7 @@
         <main class="main">
             <section class="hero">
                 <h1>Summary Anggaran &amp; Realisasi</h1>
-                <p>Satu sumber data (sheet "summary"), ditampilkan sebagai tabel dengan judul, kolom, dan format
-                    tampilan yang bisa diatur berbeda-beda per tabel.</p>
+                <p>Kartu Kontrol ().</p>
 
                 <div class="filter-title">🔎 Filter Data (berlaku untuk semua paket tabel)</div>
                 <div class="filters">
@@ -1371,7 +1372,8 @@
             <div class="section-title" style="margin-top:0">
                 <span>🧾 Scorecard</span>
                 <div style="display:flex;gap:6px">
-                    <button class="btn primary" onclick="openScorecardModal()">➕ Tambah Scorecard</button>
+                    <button class="btn primary edit-controlled-feature-btn" onclick="openScorecardModal()">➕ Tambah
+                        Scorecard</button>
                 </div>
             </div>
             <div id="scorecardsContainer"></div>
@@ -1379,7 +1381,8 @@
             <div class="section-title">
                 <span>📈 Grafik</span>
                 <div style="display:flex;gap:6px">
-                    <button class="btn primary" onclick="openChartModal()">➕ Tambah Grafik</button>
+                    <button class="btn primary edit-controlled-feature-btn" onclick="openChartModal()">➕ Tambah
+                        Grafik</button>
                 </div>
             </div>
             <div id="chartsContainer"></div>
@@ -1392,9 +1395,10 @@
          disimpan terpisah per paket (lihat PACKET_CONFIGS di script).
          ============================================================ -->
             <div class="section-title" style="margin-top:22px">
-                <span>📋 Paket Tabel Data</span>
+                <span>📋 Tabel</span>
                 <div style="display:flex;gap:6px">
-                    <button class="btn primary" onclick="openAddTableModal()">➕ Tambah Tabel</button>
+                    <button class="btn primary edit-controlled-feature-btn" onclick="openAddTableModal()">➕ Tambah
+                        Tabel</button>
                 </div>
             </div>
             <div id="packetsContainer"></div>
@@ -3512,7 +3516,8 @@
                 "button.edit",
                 "button.delete",
                 "button.format",
-                "[data-sc-action]"
+                "[data-sc-action]",
+                ".edit-controlled-feature-btn"
             ];
             editSelectors.forEach(sel => {
                 document.querySelectorAll(sel).forEach(el => {
